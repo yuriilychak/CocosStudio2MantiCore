@@ -721,7 +721,7 @@ module.exports = function (bundle, bundleData) {
     
                 fontStyle = createFontStyle();
                 fontStyle.name = getFontIndex(data, "LabelBMFontFile_CNB");
-                fontStyle.size = 60;
+                fontStyle.size = bundle.fontData[fontStyle.name].size;
                 fontStyle.color = data["tint"];
                 fontStyle.align = [ HORIZONTAL_ALIGN.CENTER, VERTICAL_ALIGN.MIDDLE];
     
