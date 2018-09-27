@@ -1,8 +1,16 @@
 const fs = require("fs");
-const path = require('path'); 
+const path = require('path');
+const logger = require("./logger");
+
+const actionTemplates = [
+    "{0} font generation;",
+    "Bundle '{0}' doesn't use fonts. Step skipped;",
+    "Bundle '{0}' doesn't use bitmap fonts, or fonts have wrong resolution (must be *.fnt). Step skipped;",
+    "Generation of {0} font {1}"
+];
 
 module.exports = function(bundleName, sourcePath) {
-    console.log("Start font generation");
+    logger.logMessage(actionTemplates[0], "Start");
     const result = {
         names: [],
         data: []
@@ -11,7 +19,7 @@ module.exports = function(bundleName, sourcePath) {
     const sourceFiles = fs.readdirSync(sourcePath);
 
     if (sourceFiles.indexOf(fontDir) === -1) {
-        console.log("Bundle '" + bundleName + "' doesn't use fonts. Step skipped;");
+        logger.logMessage(actionTemplates[1], bundleName);
         return result;
     }
 
@@ -22,19 +30,19 @@ module.exports = function(bundleName, sourcePath) {
     const fontSurceCount = fontSourceFiles.length;
 
     if (fontSurceCount === 0) {
-        console.log("Bundle '" + bundleName + "' doesn't use bitmap fonts, or fonts have wrong resolution (must be *.fnt). Step skipped;");
+        logger.logMessage(actionTemplates[2], bundleName);
         return result;
     }
 
     for (let i = 0; i < fontSurceCount; ++i) {
         parseFont(fontSourceFiles[i], fontDirPath, result);
     }
-    console.log("Finish font generation");
+    logger.logMessage(actionTemplates[0], "Finish");
     return result;
 };
 
 function parseFont(fontName, fontsRootPath, fontBundle) {
-    console.log("Generation of " + fontName + " font start");
+    logger.logMessage(actionTemplates[3], fontName, "start");
     fontBundle.names.push(fontName.replace(".fnt", ""));
     const fontPath = path.join(fontsRootPath, fontName);
     const fontSource = fs.readFileSync(fontPath, "utf8");
@@ -53,10 +61,10 @@ function parseFont(fontName, fontsRootPath, fontBundle) {
 
     for (i = 0; i < sourceSize; ++i) {
         line = sourceLines[i];
-        if (line.indexOf("chars count=") !== -1) {
+        if (hasSubstring(line, "chars count=")) {
             sourceLines[i] = '"chars": [';
         }
-        else if (line.indexOf("kernings count=") !== -1) {
+        else if (hasSubstring(line, "kernings count=")) {
             prevLine = sourceLines[i - 1];
             sourceLines[i - 1] = prevLine.substr(0, prevLine.length - 1);
             sourceLines[i] = '], \n"kernings": [';
@@ -74,20 +82,19 @@ function parseFont(fontName, fontsRootPath, fontBundle) {
     const kernings = resultJson.kernings || [];
     const kerningCount = kernings.length;
     const charCount = chars.length;
-    let char;
+    let char, j;
+    const fieldsForDelete = ["x", "y",  "width", "height", "xoffset", "yoffset", "chnl", "xadvance"];
+    const fieldCount =  fieldsForDelete.length;
     for (i = 0; i < charCount; ++i) {
         char = chars[i];
         char.dimensions = [char.x, char.y, char.width, char.height];
         char.offset = updateOffset([char.xoffset, char.yoffset], fontData.offsets);
         char.ax = char.xadvance;
-        delete char.x;
-        delete char.y;
-        delete char.width;
-        delete char.height;
-        delete char.xoffset;
-        delete char.yoffset;
-        delete char.chnl;
-        delete char.xadvance;
+
+        for (j = 0; j < fieldCount; ++j) {
+            delete char[fieldsForDelete[j]];
+        }
+
         fontData.chars.push(char);
     }
 
@@ -100,7 +107,7 @@ function parseFont(fontName, fontsRootPath, fontBundle) {
     fontData.spacing = resultJson.info.spacing;
     fontData.lineHeight = resultJson.common.lifetime;
     fontBundle.data.push(fontData);
-    console.log("Generation of " + fontName + " font finish");
+    logger.logMessage(actionTemplates[3], fontName, "finish");
 }
 
 function updateOffset(offset, offsets) {
@@ -134,22 +141,30 @@ function parseLine(line) {
     
     for (i = 1; i < splitCount; ++i) {
         data = lineSplit[i];
-        if (data.indexOf("padding") !== -1) {
-            lineSplit[i] = '"' + data.replace('=', '":[') + ((i !== splitCount - 1) ? "]," : ("]" + suffix));
+        if (hasSubstring(data, "padding")) {
+            lineSplit[i] = updateProperty(data, i, splitCount, '":[', "],", "]", suffix);
         }
-        else if (data.indexOf("face") !== -1) {
-            lineSplit[i] = '"' + data.replace('=', '":"') + ((i !== splitCount - 1) ? '",' : ('"' + suffix));
+        else if (hasSubstring(data, "face")) {
+            lineSplit[i] = updateProperty(data, i, splitCount, '":"', '",', '"', suffix);
         }
         else {
             data = data.replace(",", ".");
 
-            if (data.indexOf("charset") !== -1 || data.indexOf("unicode") !== -1) {
+            if (hasSubstring(data, "charset") || hasSubstring(data, "unicode")) {
                 data += "0"
             }
 
-            lineSplit[i] = '"' + data.replace('=', '":') + ((i !== splitCount - 1) ? "," : suffix);
+            lineSplit[i] = updateProperty(data, i, splitCount, '":', ",", "", suffix);
         }
         
     }
     return lineSplit.join(" ");
+}
+
+function hasSubstring(data, value) {
+    return data.indexOf(value) !== -1;
+}
+
+function updateProperty(data, index, splitCount, divider, prefix1, prefix2, suffix) {
+    return '"' + data.replace('=', divider) + ((index !== splitCount - 1) ? prefix1 : (prefix2 + suffix));
 }

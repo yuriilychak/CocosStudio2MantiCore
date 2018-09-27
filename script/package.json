@@ -9,6 +9,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "npm": "^6.4.1",
     "plist": "^3.0.1",
     "xml2js": "^0.4.19"
   }

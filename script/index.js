@@ -2,6 +2,7 @@ const addUIToBundle = require("./uiParser");
 const addFontToBundle = require("./fontParser");
 const generateAtlases = require("./atlasParser");
 const fileUtil = require("./fileUtils");
+const logger = require('./logger');
 const fs = require("fs"); 
 const path = require('path');
 
@@ -65,19 +66,19 @@ function generateAssetBundle(dirName) {
         "Error '{0}' asset don't have '{1}' folder in '{2}';"
     ];
 
-    logMessage(actionTemplates[4], dirName);
+    logger.logMessage(actionTemplates[4], dirName);
 
     fileUtil.clearDir(exportPath, dirName);
     fileUtil.createDir(dirName, exportPath);
 
-    logMessage(actionTemplates[0], dirName, "start");
+    logger.logMessage(actionTemplates[0], dirName, "start");
 
     const rootDirPath = path.join(workingDir, dirName);
     const projectFiles = fs.readdirSync(rootDirPath);
     const assetDir = "export";
 
     if (projectFiles.indexOf(assetDir) === -1) {
-        logMessage(errorTemplates[0], dirName, assetDir, rootDirPath);
+        logger.logMessage(errorTemplates[0], dirName, assetDir, rootDirPath);
         return;
     }
 
@@ -86,7 +87,7 @@ function generateAssetBundle(dirName) {
     const elementDir = "element";
 
     if (assetDirs.indexOf(elementDir) === -1) {
-        logMessage(errorTemplates[0], dirName, elementDir, assetDirPath);
+        logger.logMessage(errorTemplates[0], dirName, elementDir, assetDirPath);
         return;
     }
 
@@ -107,33 +108,33 @@ function generateAssetBundle(dirName) {
         const mobilePath = hasMobile ? path.join(elementDirPath, mobileDir) : null;
         const commonPath = hasCommon ? path.join(elementDirPath, commonDir) : null;
 
-        logMessage(actionTemplates[1], commonDir, hasCommon);
-        logMessage(actionTemplates[1], desktopDir, hasDesktop);
-        logMessage(actionTemplates[1], mobileDir, hasMobile);
+        logger.logMessage(actionTemplates[1], commonDir, hasCommon);
+        logger.logMessage(actionTemplates[1], desktopDir, hasDesktop);
+        logger.logMessage(actionTemplates[1], mobileDir, hasMobile);
 
         if (hasDesktop || hasCommon) {
             const bundle = createEmptyAssetBundle();
             bundle.fonts = fontBundle.names;
             bundle.fontData = fontBundle.data;
-            logMessage(actionTemplates[2], desktopDir);
+            logger.logMessage(actionTemplates[2], desktopDir);
             createAssetBundle(bundle, desktopPath, commonPath, dirName, false);
         }
         else {
-            logMessage(actionTemplates[3], dirName, desktopDir);
+            logger.logMessage(actionTemplates[3], dirName, desktopDir);
         }
 
         if (hasMobile || hasCommon) {
             const bundle = createEmptyAssetBundle();
             bundle.fonts = fontBundle.names;
             bundle.fontData = fontBundle.data;
-            logMessage(actionTemplates[2], mobileDir);
+            logger.logMessage(actionTemplates[2], mobileDir);
             createAssetBundle(bundle, mobilePath, commonPath, dirName, true);
         }
         else {
-            logMessage(actionTemplates[3], dirName, mobileDir);
+            logger.logMessage(actionTemplates[3], dirName, mobileDir);
         }
 
-        logMessage(actionTemplates[0], dirName, "finish");
+        logger.logMessage(actionTemplates[0], dirName, "finish");
     });
 }
 
@@ -216,30 +217,6 @@ function createEmptyAssetBundle() {
         textureParts: [],
         ui: []
     }
-}
-
-
-/**
- * @desc Log step messages
- * @function
- * @param {...*} var_args
- */
-
-function logMessage(var_args) {
-    const argumentCount = arguments.length;
-    let result;
-
-    if (argumentCount === 1) {
-        result = arguments[0];
-    }
-    else {
-        const template = "{0}";
-        result = arguments[0];
-        for (let i = 1; i < argumentCount; ++i) {
-            result = result.replace(template.replace("0", i - 1), arguments[i].toString());
-        }
-    }
-    console.log(result);
 }
 
 if (dirs.indexOf(exportDir) === -1) {
