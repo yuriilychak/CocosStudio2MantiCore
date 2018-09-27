@@ -1,7 +1,9 @@
 const fs = require("fs");
 const path = require('path');
 const xml2js = require('xml2js');
+const pngjs = require('pngjs');
 const fileUtil = require("./fileUtils");
+const logger = require("./logger");
 const { exec } = require('child_process');
 
 let atlasCount = 0;
@@ -10,8 +12,15 @@ let atlasArray = [];
 let callback = null;
 let atlasData = null;
 
+const actionTemplates = [
+    "{0} atlas generation",
+    "Bundle '{0}' doesn't have atlas folder. Step skipped",
+    "Bundle '{0}' atlas dir doesn't have atlas files (need *.csi resolution). Step skipped",
+    "Generation of atlas '{0}' {1}"
+];
+
 /**
- * @param {{names: string[], data: string[]}} fontBundle
+ * @param {{names: string[], data: Object[]}} fontBundle
  * @param {string} bundleName
  * @param {string} sourcePath
  * @param {string} rootPath
@@ -20,7 +29,7 @@ let atlasData = null;
  */
 
 module.exports = function(fontBundle, bundleName, sourcePath, rootPath, exportPath, onCompleteCallback) {
-    console.log("Start atlas generation");
+    logger.logMessage(actionTemplates[0], "Start");
 
     atlasData = {
         names: [],
@@ -31,7 +40,7 @@ module.exports = function(fontBundle, bundleName, sourcePath, rootPath, exportPa
     const sourceFiles = fs.readdirSync(sourcePath);
 
     if (sourceFiles.indexOf(atlasDir) === -1) {
-        console.log("Bundle '" + bundleName + "' doesn't have atlas folder. Step skipped");
+        logger.logMessage(actionTemplates[1], bundleName);
         onCompleteCallback(atlasData);
     }
 
@@ -44,7 +53,7 @@ module.exports = function(fontBundle, bundleName, sourcePath, rootPath, exportPa
     atlasCount = atlasArray.length;
 
     if (atlasCount === 0) {
-        console.log("Bundle '" + bundleName + "' atlas dir doesn't have atlas files (need *.csi resolution). Step skipped");
+        logger.logMessage(actionTemplates[2], bundleName);
         onCompleteCallback(atlasData);
     }
 
@@ -61,6 +70,12 @@ function generateAtlas(atlasBundle, fontBundle, atlasFileName, atlasPath, source
     const atlasName = atlasFileName.replace(".csi", "");
     const fontFile = fs.readFileSync(path.join(atlasPath, atlasFileName), "utf8");
     const tmpDirPath = fileUtil.createDir("tmp", rootPath);
+
+    logger.logMessage(actionTemplates[3], atlasName, "start");
+
+    if (atlasName === "main") {
+        cutFonts(fontBundle, sourcePath, tmpDirPath);
+    }
 
     xml2js.parseString(fontFile, (err, jsonData) => {
         const images = jsonData["PlistInfoProjectFile"]["Content"][0]["ImageFiles"][0]["FilePathData"];
@@ -95,19 +110,52 @@ function generateAtlas(atlasBundle, fontBundle, atlasFileName, atlasPath, source
         const command = commandSplit.join(" ");
         exec(command, (err, stdout, stderr) => {
             if (err) {
-                console.log("Creating atlas '" + atlasName + "' failed with error: " + err);
+                logger.logMessage(actionTemplates[3], atlasName, "failed with error: " + err);
             }
             else {
-                console.log("Atlas '" + atlasName + "' generated");
+                logger.logMessage(actionTemplates[3], atlasName, "finish");
             }
             ++atlasIndex;
 
             if (atlasIndex === atlasCount) {
-                console.log("Finish atlas generation");
+                logger.logMessage(actionTemplates[0], "Finish");
                 callback(atlasBundle);
                 return;
             }
             generateAtlas(atlasData, fontBundle, atlasArray[atlasIndex], atlasPath, sourcePath, rootPath, exportPath);
         });
     });
+}
+
+/**
+ * @desc Cut fonts image for pack font to atlas.
+ * @function
+ * @param {{names: string[], data: Object[]}} fontBundle
+ */
+
+function cutFonts(fontBundle, sourcePath, tmpPath) {
+    const fontNames = fontBundle.names;
+    const fontCount = fontNames.length;
+
+    if (fontCount === 0) {
+        return;
+    }
+
+    const fontDir = "font";
+    const fontDirPath = path.join(sourcePath, fontDir);
+    const fontFiles = fs.readdirSync(fontDirPath);
+
+    let i, fontName;
+
+    const fontIndexForUpdate = [];
+
+    for (i = 0; i < fontCount; ++i) {
+
+        fontName = fontNames[i];
+        if (fontFiles.indexOf(fontName + ".png") === -1) {
+            logger.logMessage("Font '{0}' doesn't have *.png file and can't cut", fontName);
+            continue;
+        }
+        fontIndexForUpdate.push(i);
+    }
 }

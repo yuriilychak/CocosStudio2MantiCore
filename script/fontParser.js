@@ -3,9 +3,9 @@ const path = require('path');
 const logger = require("./logger");
 
 const actionTemplates = [
-    "{0} font generation;",
-    "Bundle '{0}' doesn't use fonts. Step skipped;",
-    "Bundle '{0}' doesn't use bitmap fonts, or fonts have wrong resolution (must be *.fnt). Step skipped;",
+    "{0} font generation",
+    "Bundle '{0}' doesn't use fonts. Step skipped",
+    "Bundle '{0}' doesn't use bitmap fonts, or fonts have wrong resolution (must be *.fnt). Step skipped",
     "Generation of {0} font {1}"
 ];
 

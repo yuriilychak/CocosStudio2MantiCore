@@ -18,6 +18,7 @@ function logMessage(var_args) {
             result = result.replace(template.replace("0", i - 1), arguments[i].toString());
         }
     }
+    result += ";";
     console.log(result);
 }
 

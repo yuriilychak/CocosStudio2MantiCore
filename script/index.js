@@ -56,14 +56,14 @@ const assetDirs = dirs.filter(dir => fs.readdirSync(dir).includes(sourceDir));
 
 function generateAssetBundle(dirName) {
     const actionTemplates = [
-        "Bundle '{0}' generation {1};",
-        "Has '{0}' elements: {1};",
-        "Generate {0} bundles;",
-        "Bundle '{0}' doesn't have {1} elements. Step skipped;",
+        "Bundle '{0}' generation {1}",
+        "Has '{0}' elements: {1}",
+        "Generate {0} bundles",
+        "Bundle '{0}' doesn't have {1} elements. Step skipped",
         "Clear '{0}' export dir"
     ];
     const errorTemplates = [
-        "Error '{0}' asset don't have '{1}' folder in '{2}';"
+        "Error '{0}' asset don't have '{1}' folder in '{2}'"
     ];
 
     logger.logMessage(actionTemplates[4], dirName);
