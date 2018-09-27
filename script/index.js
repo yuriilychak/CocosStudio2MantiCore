@@ -103,7 +103,7 @@ function generateAssetBundle(dirName) {
         const mobileDir = "mobile";
         const hasCommon = elementDirs.indexOf(commonDir) !== -1;
         const hasDesktop = elementDirs.indexOf(desktopDir) !== -1;
-        const hasMobile = elementDirs.indexOf(desktopDir) !== -1;
+        const hasMobile = elementDirs.indexOf(mobileDir) !== -1;
         const desktopPath = hasDesktop ? path.join(elementDirPath, desktopDir) : null;
         const mobilePath = hasMobile ? path.join(elementDirPath, mobileDir) : null;
         const commonPath = hasCommon ? path.join(elementDirPath, commonDir) : null;
