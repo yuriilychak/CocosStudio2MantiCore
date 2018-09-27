@@ -1,14 +1,13 @@
 const fs = require("fs");
 const path = require('path');
-const xml2js = require('xml2js');
 const pngjs = require('pngjs');
+const xml2json = require('xml2json');
 const fileUtil = require("./fileUtils");
 const logger = require("./logger");
-const { exec } = require('child_process');
+const { execSync } = require('child_process');
 
 let atlasCount = 0;
 let atlasIndex = 0;
-let atlasArray = [];
 let callback = null;
 let atlasData = null;
 
@@ -49,8 +48,7 @@ module.exports = function(fontBundle, bundleName, sourcePath, rootPath, exportPa
     const atlasFiles = dirFiles.filter(file => file.indexOf(".csi") !== -1);
 
     atlasIndex = 0;
-    atlasArray = atlasFiles;
-    atlasCount = atlasArray.length;
+    atlasCount = atlasFiles.length;
 
     if (atlasCount === 0) {
         logger.logMessage(actionTemplates[2], bundleName);
@@ -60,8 +58,10 @@ module.exports = function(fontBundle, bundleName, sourcePath, rootPath, exportPa
     callback = onCompleteCallback;
 
     for (let i = 0; i < atlasCount; ++i) {
-        generateAtlas(atlasData, fontBundle, atlasArray[i], atlasDirPath, sourcePath, rootPath, exportPath);
+        generateAtlas(atlasData, fontBundle, atlasFiles[i], atlasDirPath, sourcePath, rootPath, exportPath);
     }
+
+    logger.logMessage(actionTemplates[0], "Finish");
 
     return atlasData;
 };
@@ -77,54 +77,38 @@ function generateAtlas(atlasBundle, fontBundle, atlasFileName, atlasPath, source
         cutFonts(fontBundle, sourcePath, tmpDirPath);
     }
 
-    xml2js.parseString(fontFile, (err, jsonData) => {
-        const images = jsonData["PlistInfoProjectFile"]["Content"][0]["ImageFiles"][0]["FilePathData"];
-        const imageCount = images.length;
-        for (let i = 0; i < imageCount; ++i) {
-            fileUtil.copyFile(sourcePath, tmpDirPath, images[i]["$"]["Path"]);
-        }
+    const atlasJson = JSON.parse(xml2json.toJson(fontFile));
+    const images = atlasJson["PlistInfoProjectFile"]["Content"]["ImageFiles"]["FilePathData"];
+    const imageCount = images.length;
 
-        const outJsonFile = path.join(exportPath, atlasName + ".json");
-        const outPngFile = path.join(exportPath, atlasName + ".png");
+    for (let i = 0; i < imageCount; ++i) {
+        fileUtil.copyFile(sourcePath, tmpDirPath, images[i]["Path"]);
+    }
 
-        const commandSplit = [
-            "TexturePacker",
-            tmpDirPath,
-            "--texture-format png",
-            "--format pixijs4",
-            "--data " + outJsonFile,
-            "--texturepath " + outPngFile,
-            "--trim-sprite-names",
-            "--algorithm MaxRects",
-            "--size-constraints POT",
-            "--force-squared",
-            "--pack-mode Best",
-            "--disable-rotation",
-            "--extrude 1",
-            "--trim-mode Trim",
-            "--trim-threshold 1",
-            "--trim-margin 1",
-            "--opt RGBA8888",
-        ];
+    const outJsonFile = path.join(exportPath, atlasName + ".json");
 
-        const command = commandSplit.join(" ");
-        exec(command, (err, stdout, stderr) => {
-            if (err) {
-                logger.logMessage(actionTemplates[3], atlasName, "failed with error: " + err);
-            }
-            else {
-                logger.logMessage(actionTemplates[3], atlasName, "finish");
-            }
-            ++atlasIndex;
+    const commandSplit = [
+        "TexturePacker",
+        tmpDirPath,
+        "--texture-format png",
+        "--format pixijs4",
+        "--data " + outJsonFile,
+        "--trim-sprite-names",
+        "--algorithm MaxRects",
+        "--size-constraints POT",
+        "--force-squared",
+        "--pack-mode Best",
+        "--disable-rotation",
+        "--extrude 1",
+        "--trim-mode Trim",
+        "--trim-threshold 1",
+        "--trim-margin 1",
+        "--opt RGBA8888",
+    ];
 
-            if (atlasIndex === atlasCount) {
-                logger.logMessage(actionTemplates[0], "Finish");
-                callback(atlasBundle);
-                return;
-            }
-            generateAtlas(atlasData, fontBundle, atlasArray[atlasIndex], atlasPath, sourcePath, rootPath, exportPath);
-        });
-    });
+    const command = commandSplit.join(" ");
+    execSync(command);
+    logger.logMessage(actionTemplates[3], atlasName, "finish");
 }
 
 /**

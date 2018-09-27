@@ -42,7 +42,20 @@ function copyFile(inPath, outPath, filePath) {
     const startPath = path.join(inPath, filePath);
     const resultPath = path.join(outPath, filePath);
 
-    fs.createReadStream(startPath).pipe(fs.createWriteStream(resultPath));
+    const BUF_LENGTH = 64*1024;
+    const buff = new Buffer(BUF_LENGTH)
+    const fdr = fs.openSync(startPath, 'r');
+    const fdw = fs.openSync(resultPath, 'w');
+    let bytesRead = 1;
+    let pos = 0;
+
+    while (bytesRead > 0) {
+        bytesRead = fs.readSync(fdr, buff, 0, BUF_LENGTH, pos);
+        fs.writeSync(fdw,buff,0,bytesRead);
+        pos += bytesRead;
+    }
+    fs.closeSync(fdr);
+    fs.closeSync(fdw);
 }
 
 /**
