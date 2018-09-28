@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require('path');
 const pngjs = require('pngjs');
-//const xml2json = require('xml2json');
 const fileUtil = require("./fileUtils");
 const logger = require("./logger");
 const { execSync } = require('child_process');
