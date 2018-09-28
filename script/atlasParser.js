@@ -6,11 +6,6 @@ const fileUtil = require("./fileUtils");
 const logger = require("./logger");
 const { execSync } = require('child_process');
 
-let atlasCount = 0;
-let atlasIndex = 0;
-let callback = null;
-let atlasData = null;
-
 const actionTemplates = [
     "{0} atlas generation",
     "Bundle '{0}' doesn't have atlas folder. Step skipped",
@@ -27,10 +22,10 @@ const actionTemplates = [
  * @param {Function} onCompleteCallback
  */
 
-module.exports = function(fontBundle, bundleName, sourcePath, rootPath, exportPath, onCompleteCallback) {
+module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, exportPath, onCompleteCallback) {
     logger.logMessage(actionTemplates[0], "Start");
 
-    atlasData = {
+    const atlasData = {
         names: [],
         pages: [],
         atlasData: []
@@ -46,53 +41,28 @@ module.exports = function(fontBundle, bundleName, sourcePath, rootPath, exportPa
     const atlasDirPath = path.join(sourcePath, atlasDir);
     const dirFiles = fs.readdirSync(atlasDirPath);
     const atlasFiles = dirFiles.filter(file => file.indexOf(".csi") !== -1);
-
-    atlasIndex = 0;
-    atlasCount = atlasFiles.length;
+    const atlasCount = atlasFiles.length;
 
     if (atlasCount === 0) {
         logger.logMessage(actionTemplates[2], bundleName);
         onCompleteCallback(atlasData);
     }
 
-    callback = onCompleteCallback;
+    const fontDir = "font";
+    const fontDirPath = path.join(sourcePath, fontDir);
+    const fontNames = fontBundle.names;
+    const fontData = fontBundle.data;
+    const fontCount = fontNames.length;
+    let i, j, atlasFileName, atlasName, atlasXmlString, atlasJson,
+        images,tmpPath, fontFiles, fontName, fontPath, fontChars, fontExportPath, imgChar, buffer;
 
-    for (let i = 0; i < atlasCount; ++i) {
-        generateAtlas(atlasData, fontBundle, atlasFiles[i], atlasDirPath, sourcePath, rootPath, exportPath);
-    }
-
-    logger.logMessage(actionTemplates[0], "Finish");
-
-    return atlasData;
-};
-
-function generateAtlas(atlasBundle, fontBundle, atlasFileName, atlasPath, sourcePath, rootPath, exportPath) {
-    const atlasName = atlasFileName.replace(".csi", "");
-    const fontFile = fs.readFileSync(path.join(atlasPath, atlasFileName), "utf8");
-    const tmpDirPath = fileUtil.createDir("tmp", rootPath);
-
-    logger.logMessage(actionTemplates[3], atlasName, "start");
-
-    if (atlasName === "main") {
-        cutFonts(fontBundle, sourcePath, tmpDirPath);
-    }
-
-    const atlasJson = JSON.parse(xml2json.toJson(fontFile));
-    const images = atlasJson["PlistInfoProjectFile"]["Content"]["ImageFiles"]["FilePathData"];
-    const imageCount = images.length;
-
-    for (let i = 0; i < imageCount; ++i) {
-        fileUtil.copyFile(sourcePath, tmpDirPath, images[i]["Path"]);
-    }
-
-    const outJsonFile = path.join(exportPath, atlasName + ".json");
-
-    const commandSplit = [
+    const command = [
         "TexturePacker",
-        tmpDirPath,
+        "",// Path of input
         "--texture-format png",
         "--format pixijs4",
-        "--data " + outJsonFile,
+        "--data",
+        "", //Path of export
         "--trim-sprite-names",
         "--algorithm MaxRects",
         "--size-constraints POT",
@@ -106,40 +76,68 @@ function generateAtlas(atlasBundle, fontBundle, atlasFileName, atlasPath, source
         "--opt RGBA8888",
     ];
 
-    const command = commandSplit.join(" ");
-    execSync(command);
-    logger.logMessage(actionTemplates[3], atlasName, "finish");
-}
+    for (i = 0; i < atlasCount; ++i) {
+        atlasFileName = atlasFiles[i];
+        atlasName = atlasFileName.replace(".csi", "");
 
-/**
- * @desc Cut fonts image for pack font to atlas.
- * @function
- * @param {{names: string[], data: Object[]}} fontBundle
- */
+        logger.logMessage(actionTemplates[3], atlasName, "start");
 
-function cutFonts(fontBundle, sourcePath, tmpPath) {
-    const fontNames = fontBundle.names;
-    const fontCount = fontNames.length;
+        tmpPath = fileUtil.createDir("tmp", rootPath);
+        atlasXmlString = fs.readFileSync(path.join(atlasDirPath, atlasFileName), "utf8");
+        atlasJson = JSON.parse(xml2json.toJson(atlasXmlString));
+        images = atlasJson["PlistInfoProjectFile"]["Content"]["ImageFiles"]["FilePathData"];
 
-    if (fontCount === 0) {
-        return;
-    }
+        images.forEach(image => fileUtil.copyFile(sourcePath, tmpPath, image["Path"]));
 
-    const fontDir = "font";
-    const fontDirPath = path.join(sourcePath, fontDir);
-    const fontFiles = fs.readdirSync(fontDirPath);
+        if (atlasName === "main") {
+            if (fontCount === 0) {
+                continue;
+            }
+            fontFiles = fs.readdirSync(fontDirPath);
 
-    let i, fontName;
+            for (j = 0; j < fontCount; ++j) {
+                fontName = fontNames[j];
 
-    const fontIndexForUpdate = [];
+                if (fontFiles.indexOf(fontName + ".png") === -1) {
+                    logger.logMessage("Font '{0}' doesn't have *.png file and can't cut", fontName);
+                    continue;
+                }
+                fontChars = fontData[j].chars;
+                fontExportPath = fileUtil.createDir(tmpPath, fontName);
+                console.log(fontExportPath);
 
-    for (i = 0; i < fontCount; ++i) {
+                logger.logMessage("Cut '{0}' font", fontName);
 
-        fontName = fontNames[i];
-        if (fontFiles.indexOf(fontName + ".png") === -1) {
-            logger.logMessage("Font '{0}' doesn't have *.png file and can't cut", fontName);
-            continue;
+                fontPath = path.join(fontDirPath, fontName + ".png");
+                await new Promise(resolve => {
+                    fs.createReadStream(fontPath)
+                        .pipe(new pngjs.PNG())
+                        .on('parsed', function() {
+                            console.log("PARSED");
+                            fontChars.forEach(char => {
+                                if (char.dimensions[2] === 0 || char.dimensions[3] === 0) {
+                                    return;
+                                }
+                                imgChar = new pngjs.PNG({width: char.dimensions[2], height: char.dimensions[3]});
+                                this.bitblt(imgChar, char.dimensions[0], char.dimensions[1], char.dimensions[2], char.dimensions[3]);
+                                buffer = pngjs.PNG.sync.write(imgChar, {});
+                                fs.writeFileSync(path.join(fontExportPath, char.id + ".png"), buffer);
+                            });
+                            resolve();
+                        });
+                });
+            }
         }
-        fontIndexForUpdate.push(i);
+
+        command[1] = tmpPath;
+        command[5] = path.join(exportPath, atlasName + ".json");
+
+        execSync(command.join(" "));
+        fileUtil.deleteDirRecursive(tmpPath);
+        logger.logMessage(actionTemplates[0], "Finish");
     }
-}
+
+    logger.logMessage(actionTemplates[3], atlasName, "finish");
+
+    onCompleteCallback(atlasData);
+};

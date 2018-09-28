@@ -43,7 +43,7 @@ function copyFile(inPath, outPath, filePath) {
     const resultPath = path.join(outPath, filePath);
 
     const BUF_LENGTH = 64*1024;
-    const buff = new Buffer(BUF_LENGTH)
+    const buff = new Buffer(BUF_LENGTH);
     const fdr = fs.openSync(startPath, 'r');
     const fdw = fs.openSync(resultPath, 'w');
     let bytesRead = 1;
@@ -81,8 +81,31 @@ function clearDir(rootPath, dir) {
     }
 }
 
+/**
+ * @desc Delete dir recursive
+ * @function
+ * @public
+ * @param {string} dirPath
+ */
+
+function deleteDirRecursive(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+        return;
+    }
+    fs.readdirSync(dirPath).forEach(file => {
+        let curPath = path.join(dirPath, file);
+        if (fs.lstatSync(curPath).isDirectory()) {
+            deleteDirRecursive(curPath);
+        } else {
+            fs.unlinkSync(curPath);
+        }
+    });
+    fs.rmdirSync(dirPath);
+}
+
 module.exports = {
     createDir,
     clearDir,
-    copyFile
+    copyFile,
+    deleteDirRecursive
 };
