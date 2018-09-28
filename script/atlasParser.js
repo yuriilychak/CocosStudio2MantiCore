@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require('path');
 const pngjs = require('pngjs');
-const xml2json = require('xml2json');
+//const xml2json = require('xml2json');
 const fileUtil = require("./fileUtils");
 const logger = require("./logger");
 const { execSync } = require('child_process');
@@ -84,10 +84,11 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
 
         tmpPath = fileUtil.createDir("tmp", rootPath);
         atlasXmlString = fs.readFileSync(path.join(atlasDirPath, atlasFileName), "utf8");
-        atlasJson = JSON.parse(xml2json.toJson(atlasXmlString));
-        images = atlasJson["PlistInfoProjectFile"]["Content"]["ImageFiles"]["FilePathData"];
+        images = atlasXmlString.split("\n")
+            .filter(str => str.indexOf("<FilePathData Path=") !== -1)
+            .map(str => str.replace('      <FilePathData Path="', "").replace('" />\r', ""));
 
-        images.forEach(image => fileUtil.copyFile(sourcePath, tmpPath, image["Path"]));
+        images.forEach(image => fileUtil.copyFile(sourcePath, tmpPath, image));
 
         if (atlasName === "main") {
             if (fontCount === 0) {
@@ -103,8 +104,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
                     continue;
                 }
                 fontChars = fontData[j].chars;
-                fontExportPath = fileUtil.createDir(tmpPath, fontName);
-                console.log(fontExportPath);
+                fontExportPath = fileUtil.createDir(fontName, tmpPath);
 
                 logger.logMessage("Cut '{0}' font", fontName);
 
@@ -113,7 +113,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
                     fs.createReadStream(fontPath)
                         .pipe(new pngjs.PNG())
                         .on('parsed', function() {
-                            console.log("PARSED");
+
                             fontChars.forEach(char => {
                                 if (char.dimensions[2] === 0 || char.dimensions[3] === 0) {
                                     return;
@@ -123,6 +123,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
                                 buffer = pngjs.PNG.sync.write(imgChar, {});
                                 fs.writeFileSync(path.join(fontExportPath, char.id + ".png"), buffer);
                             });
+                            logger.logMessage("Cut '{0}' complete", fontName);
                             resolve();
                         });
                 });

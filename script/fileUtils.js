@@ -43,7 +43,7 @@ function copyFile(inPath, outPath, filePath) {
     const resultPath = path.join(outPath, filePath);
 
     const BUF_LENGTH = 64*1024;
-    const buff = new Buffer(BUF_LENGTH);
+    const buff = Buffer.alloc(BUF_LENGTH);
     const fdr = fs.openSync(startPath, 'r');
     const fdw = fs.openSync(resultPath, 'w');
     let bytesRead = 1;
