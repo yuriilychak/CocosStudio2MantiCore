@@ -12,6 +12,8 @@ const actionTemplates = [
     "Generation of atlas '{0}' {1}"
 ];
 
+let bundle = null;
+
 /**
  * @param {{names: string[], data: Object[]}} fontBundle
  * @param {string} bundleName
@@ -21,20 +23,20 @@ const actionTemplates = [
  * @param {Function} onCompleteCallback
  */
 
-module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, exportPath, onCompleteCallback) {
+module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, exportPath) {
     logger.logMessage(actionTemplates[0], "Start");
 
-    const atlasData = {
-        names: [],
-        pages: [],
-        atlasData: []
+    bundle = {
+        textures: [],
+        textureParts: [],
+        atlases: []
     };
     const atlasDir = "atlas";
     const sourceFiles = fs.readdirSync(sourcePath);
 
     if (sourceFiles.indexOf(atlasDir) === -1) {
         logger.logMessage(actionTemplates[1], bundleName);
-        onCompleteCallback(atlasData);
+       return bundle;
     }
 
     const atlasDirPath = path.join(sourcePath, atlasDir);
@@ -44,7 +46,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
 
     if (atlasCount === 0) {
         logger.logMessage(actionTemplates[2], bundleName);
-        onCompleteCallback(atlasData);
+        return bundle;
     }
 
     const fontDir = "font";
@@ -52,8 +54,8 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
     const fontNames = fontBundle.names;
     const fontData = fontBundle.data;
     const fontCount = fontNames.length;
-    let i, j, atlasFileName, atlasName, atlasXmlString, atlasJson,
-        images,tmpPath, fontFiles, fontName, fontPath, fontChars, fontExportPath, imgChar, buffer;
+    let i, j, atlasFileName, atlasName, atlasXmlString, atlasJsonString, atlasJson, meta, frameMap,
+        frameArray, key, frame, images,tmpPath, fontFiles, fontName, fontPath, fontChars, fontExportPath, imgChar, buffer;
 
     const command = [
         "TexturePacker",
@@ -134,10 +136,117 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
 
         execSync(command.join(" "));
         fileUtil.deleteDirRecursive(tmpPath);
-        logger.logMessage(actionTemplates[0], "Finish");
+
+        atlasJsonString = fs.readFileSync(command[5], "utf8");
+        atlasJson = JSON.parse(atlasJsonString);
+
+        meta = atlasJson["meta"];
+        frameMap = atlasJson["frames"];
+
+        atlasJson.scale = meta.scale;
+        atlasJson.size = [meta.size.w, meta.size.h];
+        atlasJson.images = [meta.image.split(".")[0]];
+
+        delete atlasJson["meta"];
+        delete atlasJson["animations"];
+
+        if (atlasName === "main") {
+            for (j = 0; j < fontCount; ++j) {
+                updateFontDimensions(frameMap, fontNames[j], fontData[j].chars);
+            }
+        }
+
+        frameArray = [];
+
+        for (key in frameMap) {
+            frame = frameMap[key];
+            frame.id = getTextureIndex(key);
+            frame.sourceSize = [
+                frame.sourceSize.w,
+                frame.sourceSize.h
+            ];
+            frame.spriteDimensions = convertFrameToDimension(frame.spriteSourceSize);
+            frame.dimensions = convertFrameToDimension(frame.frame);
+            delete frame.spriteSourceSize;
+            delete frame.frame;
+            frameArray.push(frame);
+        }
+
+        atlasJson.name = atlasName;
+        atlasJson.frames = frameArray;
+
+        bundle.atlases.push(atlasJson);
+
+        fs.unlinkSync(command[5]);
+        logger.logMessage(actionTemplates[3], atlasName, "finish");
+
     }
+    logger.logMessage(actionTemplates[0], "Finish");
 
-    logger.logMessage(actionTemplates[3], atlasName, "finish");
-
-    onCompleteCallback(atlasData);
+    return bundle;
 };
+
+function updateFontDimensions(atlasFrames, fontName, chars) {
+    const charCount = chars.length;
+    let i, charData, charFrame, frame;
+
+    for (i = 0; i < charCount; ++i) {
+        charData = chars[i];
+        charFrame = fontName + "/" + charData.id;
+        if (!atlasFrames.hasOwnProperty(charFrame)) {
+            continue;
+        }
+        frame = atlasFrames[charFrame];
+        charData.dimensions = convertFrameToDimension(frame.frame);
+        delete atlasFrames[charFrame];
+    }
+}
+
+function convertFrameToDimension(data) {
+    return [
+        data.x,
+        data.y,
+        data.w,
+        data.h
+    ];
+}
+
+/**
+ * @desc Add texture to cache, and returns index.
+ * @function
+ * @param {string} name
+ * @returns {int}
+ */
+
+function getTextureIndex(name) {
+    const decomposed = decomposeTexturePath(name);
+    const stringified = JSON.stringify(decomposed);
+    const textureCount = bundle.textures.length;
+    let i;
+    for (i = 0; i < textureCount; ++i) {
+        if (stringified === JSON.stringify(bundle.textures[i])) {
+            return i;
+        }
+    }
+    let result = bundle.textures.length;
+    bundle.textures.push(decomposed);
+
+    return result;
+}
+
+function decomposeTexturePath(name) {
+    const result = [];
+    const nameSplit = name.split("/");
+    const splitCount = nameSplit.length;
+    let index, i, part;
+    for (i = 0; i < splitCount; ++i) {
+        part = nameSplit[i];
+        index = bundle.textureParts.indexOf(part);
+        if (index === -1) {
+            index = bundle.textureParts.length;
+            bundle.textureParts.push(part);
+        }
+        result.push(index);
+    }
+    return result;
+}

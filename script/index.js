@@ -54,7 +54,7 @@ const assetDirs = dirs.filter(dir => fs.readdirSync(dir).includes(sourceDir));
  * @param {string} dirName - Name of dir
  */
 
-function generateAssetBundle(dirName) {
+async function generateAssetBundle(dirName) {
     const actionTemplates = [
         "Bundle '{0}' generation {1}",
         "Has '{0}' elements: {1}",
@@ -94,48 +94,53 @@ function generateAssetBundle(dirName) {
     const sourceDirPath = path.join(rootDirPath, sourceDir);
     const fontBundle = addFontToBundle(dirName, sourceDirPath);
 
-    generateAtlases(fontBundle, dirName, sourceDirPath, workingDir, path.join(exportPath, dirName), (atlasBundle) => {
-        const elementDirPath = path.join(assetDirPath, elementDir);
-        const elementDirs = fs.readdirSync(elementDirPath);
+    const atlasBundle = await generateAtlases(fontBundle, dirName, sourceDirPath, workingDir, path.join(exportPath, dirName));
+    const elementDirPath = path.join(assetDirPath, elementDir);
+    const elementDirs = fs.readdirSync(elementDirPath);
 
-        const desktopDir = "desktop";
-        const commonDir = "common";
-        const mobileDir = "mobile";
-        const hasCommon = elementDirs.indexOf(commonDir) !== -1;
-        const hasDesktop = elementDirs.indexOf(desktopDir) !== -1;
-        const hasMobile = elementDirs.indexOf(mobileDir) !== -1;
-        const desktopPath = hasDesktop ? path.join(elementDirPath, desktopDir) : null;
-        const mobilePath = hasMobile ? path.join(elementDirPath, mobileDir) : null;
-        const commonPath = hasCommon ? path.join(elementDirPath, commonDir) : null;
+    const desktopDir = "desktop";
+    const commonDir = "common";
+    const mobileDir = "mobile";
+    const hasCommon = elementDirs.indexOf(commonDir) !== -1;
+    const hasDesktop = elementDirs.indexOf(desktopDir) !== -1;
+    const hasMobile = elementDirs.indexOf(mobileDir) !== -1;
+    const desktopPath = hasDesktop ? path.join(elementDirPath, desktopDir) : null;
+    const mobilePath = hasMobile ? path.join(elementDirPath, mobileDir) : null;
+    const commonPath = hasCommon ? path.join(elementDirPath, commonDir) : null;
 
-        logger.logMessage(actionTemplates[1], commonDir, hasCommon);
-        logger.logMessage(actionTemplates[1], desktopDir, hasDesktop);
-        logger.logMessage(actionTemplates[1], mobileDir, hasMobile);
+    logger.logMessage(actionTemplates[1], commonDir, hasCommon);
+    logger.logMessage(actionTemplates[1], desktopDir, hasDesktop);
+    logger.logMessage(actionTemplates[1], mobileDir, hasMobile);
 
-        if (hasDesktop || hasCommon) {
-            const bundle = createEmptyAssetBundle();
-            bundle.fonts = fontBundle.names;
-            bundle.fontData = fontBundle.data;
-            logger.logMessage(actionTemplates[2], desktopDir);
-            createAssetBundle(bundle, desktopPath, commonPath, dirName, false);
-        }
-        else {
-            logger.logMessage(actionTemplates[3], dirName, desktopDir);
-        }
+    if (hasDesktop || hasCommon) {
+        const bundle = createEmptyAssetBundle();
+        bundle.fonts = fontBundle.names;
+        bundle.fontData = fontBundle.data;
+        bundle.textures = atlasBundle.textures;
+        bundle.textureParts = atlasBundle.textureParts;
+        bundle.atlases = atlasBundle.atlases;
+        logger.logMessage(actionTemplates[2], desktopDir);
+        createAssetBundle(bundle, desktopPath, commonPath, dirName, false);
+    }
+    else {
+        logger.logMessage(actionTemplates[3], dirName, desktopDir);
+    }
 
-        if (hasMobile || hasCommon) {
-            const bundle = createEmptyAssetBundle();
-            bundle.fonts = fontBundle.names;
-            bundle.fontData = fontBundle.data;
-            logger.logMessage(actionTemplates[2], mobileDir);
-            createAssetBundle(bundle, mobilePath, commonPath, dirName, true);
-        }
-        else {
-            logger.logMessage(actionTemplates[3], dirName, mobileDir);
-        }
+    if (hasMobile || hasCommon) {
+        const bundle = createEmptyAssetBundle();
+        bundle.fonts = fontBundle.names;
+        bundle.fontData = fontBundle.data;
+        bundle.textures = atlasBundle.textures;
+        bundle.textureParts = atlasBundle.textureParts;
+        bundle.atlases = atlasBundle.atlases;
+        logger.logMessage(actionTemplates[2], mobileDir);
+        createAssetBundle(bundle, mobilePath, commonPath, dirName, true);
+    }
+    else {
+        logger.logMessage(actionTemplates[3], dirName, mobileDir);
+    }
 
-        logger.logMessage(actionTemplates[0], dirName, "finish");
-    });
+    logger.logMessage(actionTemplates[0], dirName, "finish");
 }
 
 
@@ -204,6 +209,7 @@ function getAssetElementData(uiData, dirPath)  {
 function createEmptyAssetBundle() {
     return {
         anchors: [],
+        atlases: [],
         atlasFonts: [],
         colors: [],
         componentNames: [],

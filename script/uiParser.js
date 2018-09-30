@@ -99,7 +99,28 @@ module.exports = function (bundle, bundleData) {
     function formatElement(element, parent) {
         swapPointToArray(element, "Scale", "scale", [100, 100], true, "Scale");
         swapPointToArray(element, "AnchorPoint", "anchor", [0, 0], true, "Scale");
-    
+
+        if (!element.Position) {
+            element.Position = {
+                X: 0,
+                Y: 0
+            }
+        }
+
+        if (!element.PrePosition) {
+            element.PrePosition = {
+                X: 0,
+                Y: 0
+            }
+        }
+
+        if (!element.PreSize) {
+            element.PreSize = {
+                X: 1,
+                Y: 1
+            }
+        }
+
         unionDimension(element, "dimensions", "Position", "Size", [0, 0], [1, 1], false);
         unionDimension(element, "preDimensions", "PrePosition", "PreSize", [0, 0], [100, 100], true);
     
