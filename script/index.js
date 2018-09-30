@@ -119,6 +119,7 @@ async function generateAssetBundle(dirName) {
         bundle.textures = atlasBundle.textures;
         bundle.textureParts = atlasBundle.textureParts;
         bundle.atlases = atlasBundle.atlases;
+        bundle.name = dirName;
         logger.logMessage(actionTemplates[2], desktopDir);
         createAssetBundle(bundle, desktopPath, commonPath, dirName, false);
     }
@@ -133,6 +134,7 @@ async function generateAssetBundle(dirName) {
         bundle.textures = atlasBundle.textures;
         bundle.textureParts = atlasBundle.textureParts;
         bundle.atlases = atlasBundle.atlases;
+        bundle.name = dirName;
         logger.logMessage(actionTemplates[2], mobileDir);
         createAssetBundle(bundle, mobilePath, commonPath, dirName, true);
     }
@@ -221,7 +223,9 @@ function createEmptyAssetBundle() {
         textFieldStyles: [],
         textures: [],
         textureParts: [],
-        ui: []
+        ui: [],
+        bundleType: 1, //Asset bundle,
+        name: ""
     }
 }
 
