@@ -55,7 +55,7 @@ function parseFont(fontName, fontsRootPath, fontBundle) {
         offsets: []
     };
     const sourceLines = fontSource.split("\n");
-    const sourceSize = sourceLines.length;
+    let sourceSize = sourceLines.length;
 
     let i, line, prevLine;
 
@@ -72,6 +72,11 @@ function parseFont(fontName, fontsRootPath, fontBundle) {
         else {
             sourceLines[i] = parseLine(line);
         }
+    }
+
+    if (sourceLines[sourceLines.length - 1].length === 0) {
+        sourceLines.pop();
+        sourceSize -= 1;
     }
 
     sourceLines[sourceSize - 1] = sourceLines[sourceSize - 1].substr(0, sourceLines[sourceSize - 1].length - 1) + "]";
@@ -127,6 +132,10 @@ function parseLine(line) {
     const lineSplit = line.split(" ");
     const splitCount = lineSplit.length;
     let suffix = "";
+
+    if (line === "") {
+        return "";
+    }
 
     if (lineSplit[0] === "char" || lineSplit[0] === "kerning") {
         lineSplit[0] = "{";
