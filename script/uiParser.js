@@ -1228,6 +1228,11 @@ module.exports = function (bundle, bundleData) {
      */
     
     function getTextIndex(text) {
+        const textLength = text.length;
+        //Workaround for chines crap code
+        if(text.lastIndexOf("\n") === textLength - 1) {
+            text = text.substring(0, textLength - 1);
+        }
         let index = bundle.texts.indexOf(text);
         if (index === -1) {
             index = bundle.texts.length;

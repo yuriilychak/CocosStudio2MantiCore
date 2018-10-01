@@ -94,10 +94,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
 
         images.forEach(image => fileUtil.copyFile(sourcePath, tmpPath, image));
 
-        if (atlasName === "main") {
-            if (fontCount === 0) {
-                continue;
-            }
+        if (atlasName === "main" && fontCount !== 0) {
             fontFiles = fs.readdirSync(fontDirPath);
 
             for (j = 0; j < fontCount; ++j) {
