@@ -112,7 +112,6 @@ function parseFont(fontName, fontsRootPath, fontBundle) {
     fontData.size = resultJson.info.size;
     fontData.spacing = resultJson.info.spacing;
     fontData.lineHeight = resultJson.common.lineHeight;
-    fontData.base = resultJson.common.base;
     fontBundle.data.push(fontData);
     logger.logMessage(actionTemplates[3], fontName, "finish");
 }

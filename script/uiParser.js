@@ -133,9 +133,9 @@ module.exports = function (bundle, bundleData) {
             element.scale[1] = temp;
         }
     
-        swapIn = ["Name", "TouchEnable", "FontSize", "ctype", "Children", "ClipAble", "ComboBoxIndex", "VisibleForFrame"];
-        swapOut = ["name", "interactive", "fontSize", "type", "children", "clipped", "colliderVisible", "visible"];
-        swapCount = swapIn.length;
+        const swapIn = ["Name", "TouchEnable", "FontSize", "ctype", "Children", "ClipAble", "ComboBoxIndex", "VisibleForFrame"];
+        const swapOut = ["name", "interactive", "fontSize", "type", "children", "clipped", "colliderVisible", "visible"];
+        const swapCount = swapIn.length;
     
         element.alpha = Math.round(extractValue(element, "Alpha", 255) * 100 / 255); 
     
@@ -193,6 +193,18 @@ module.exports = function (bundle, bundleData) {
             element.dimensions[1] = parentSize - element.dimensions[1];
             element.anchor[1] = 100 - element.anchor[1];
             element.preDimensions[1] = 100 - element.preDimensions[1];
+        }
+
+
+        if (element.animations) {
+            element.animations.forEach(animation => {
+                let index = bundle.animationNames.indexOf(animation.name);
+                if (index === -1) {
+                    index = bundle.animationNames.length;
+                    bundle.animationNames.push(animation.name);
+                }
+                animation.name = index;
+            });
         }
     
         parseCustomComponents(element);
@@ -333,7 +345,7 @@ module.exports = function (bundle, bundleData) {
     }
     
     function swapPointToArray(data, link, newLink, defaultValue, isFloat = false, prefix = "") {
-        prevPoint = data[link];
+        let prevPoint = data[link];
     
         if (!prevPoint || Object.keys(prevPoint) === 0) {
             data[newLink] = defaultValue;
@@ -961,7 +973,8 @@ module.exports = function (bundle, bundleData) {
             percent: null,
             fileData: null,
             preDimensions: [0,100,100],
-            visible: true
+            visible: true,
+            animations: null
         };
     }
     
@@ -1256,5 +1269,4 @@ module.exports = function (bundle, bundleData) {
         }
         return index;
     }
-    
-}
+};

@@ -2,9 +2,11 @@ const addUIToBundle = require("./uiParser");
 const addFontToBundle = require("./fontParser");
 const generateAtlases = require("./atlasParser");
 const fileUtil = require("./fileUtils");
+const parseAnimations = require("./animationParser");
 const logger = require('./logger');
 const fs = require("fs"); 
 const path = require('path');
+
 
 /**
  * @desc Dir name for export bundles.
@@ -198,6 +200,7 @@ function getAssetElementData(uiData, dirPath)  {
     uiData.data = uiData.data.concat(assets.map(asset => {
         const assetPath = path.join(dirPath, asset);
         const data = JSON.parse(fs.readFileSync(assetPath));
+        parseAnimations(data["Content"]["Content"]);
         return data["Content"]["Content"]["ObjectData"];
     }));
 }
@@ -211,6 +214,7 @@ function getAssetElementData(uiData, dirPath)  {
 function createEmptyAssetBundle() {
     return {
         anchors: [],
+        animationNames: [],
         atlases: [],
         atlasFonts: [],
         colors: [],
