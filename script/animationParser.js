@@ -68,10 +68,7 @@ module.exports = function (bundleData) {
         parsedFrames = frames.map(frame => {
 
             const data = [];
-            let ease = {
-                id: -1,
-                points: null,
-            };
+            let ease = null;
 
             switch (actionType) {
                 case ACTION_TYPE.POSITION: {
@@ -115,17 +112,20 @@ module.exports = function (bundleData) {
 
             if (actionType !== ACTION_TYPE.VISIBLE) {
                 easeData = frame["EasingData"];
-                ease.id = easeData["Type"];
-                if (ease.id === -1) {
+                const id = easeData["Type"];
+                if (id === -1) {
                     points = easeData["Points"];
                     if (points) {
-                        ease.points = [];
+                        ease = [];
                         points.forEach(point =>
                         {
-                            ease.points.push(roundElement(point, "X", 0, 100));
-                            ease.points.push(roundElement(point, "Y", 0, 100));
+                            ease.push(roundElement(point, "X", 0, 100));
+                            ease.push(roundElement(point, "Y", 0, 100));
                         });
                     }
+                }
+                else {
+                    ease = [id];
                 }
             }
 
