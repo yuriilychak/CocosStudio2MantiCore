@@ -13,6 +13,10 @@ const ACTION_TYPE = {
 
 
 let fps;
+const MAX_CHANNEL = 255;
+const DEFAULT_FPS = 60;
+const MAX_PERCENT = 100;
+const MAX_ANGLE = 360;
 
 module.exports = function (bundleData) {
     const animationList = bundleData["AnimationList"];
@@ -24,19 +28,21 @@ module.exports = function (bundleData) {
     const animation = bundleData["Animation"];
     const objectData = bundleData["ObjectData"];
 
-    fps = Math.round(60 * animation["Speed"]);
+    fps = Math.round(DEFAULT_FPS * animation["Speed"]);
     const timeLines = animation["Timelines"];
     const timeLineCount = timeLines.length;
     const tagTimeLines = {};
-    let actionTag, i, key, timeLine, type, frames, actionType, parsedFrames, x, y, easeData, points;
+    let actionTag, i, key, timeLine, type, frames, actionType, parsedFrames, easeData, points;
 
     for (i = 0; i < timeLineCount; ++i) {
         timeLine = timeLines[i];
         actionTag = timeLine["ActionTag"];
         type = timeLine["Property"];
+
         if (!tagTimeLines.hasOwnProperty(actionTag)) {
             tagTimeLines[actionTag] = {};
         }
+
         switch (type) {
             case "Position": {
                 actionType = ACTION_TYPE.POSITION;
@@ -67,18 +73,16 @@ module.exports = function (bundleData) {
         frames = timeLine["Frames"];
         parsedFrames = frames.map(frame => {
 
-            const data = [];
+            let data = [];
             let ease = null;
 
             switch (actionType) {
                 case ACTION_TYPE.POSITION: {
-                    data.push(roundElement(frame, "X"));
-                    data.push(roundElement(frame, "Y"));
+                    data = convertToPointArray(frame, "X", "Y");
                     break;
                 }
                 case ACTION_TYPE.SCALE: {
-                    data.push(roundElement(frame, "X", 1, 100));
-                    data.push(roundElement(frame, "Y", 1, 100));
+                    data = convertToPointArray(frame, "X", "Y", 1, MAX_PERCENT);
                     break;
                 }
                 case ACTION_TYPE.TINT: {
@@ -86,25 +90,18 @@ module.exports = function (bundleData) {
                     break;
                 }
                 case ACTION_TYPE.ALPHA: {
-                    data.push(Math.round(frame["Value"] * 100 / 255));
+                    data = [Math.round(frame["Value"] * MAX_PERCENT / MAX_CHANNEL)];
                     break;
                 }
                 case ACTION_TYPE.VISIBLE: {
-                    data.push(Math.round(frame["Value"] ? 1 : 0));
-                    ease = null;
+                    data = [Math.round(frame["Value"] ? 1 : 0)];
                     break;
                 }
                 case ACTION_TYPE.SKEW: {
-                    x = roundElement(frame, "X");
-                    y = roundElement(frame, "Y");
+                    data = convertToPointArray(frame, "X", "Y");
 
-                    if (x !== y) {
-                        data.push(360 - x);
-                        data.push(y);
-                    }
-                    else {
-                        data.push(x);
-                        data.push(y);
+                    if (data[0] !== data[1]) {
+                        data[0] = MAX_ANGLE - data[0];
                     }
                     break;
                 }
@@ -117,11 +114,7 @@ module.exports = function (bundleData) {
                     points = easeData["Points"];
                     if (points) {
                         ease = [];
-                        points.forEach(point =>
-                        {
-                            ease.push(roundElement(point, "X", 0, 100));
-                            ease.push(roundElement(point, "Y", 0, 100));
-                        });
+                        points.forEach(point => ease = ease.concat(convertToPointArray(point, "X", "Y", 0, MAX_PERCENT)));
                     }
                 }
                 else {
@@ -167,12 +160,12 @@ module.exports = function (bundleData) {
 };
 
 function generateAnimations(owner, timeLines, animations) {
-    const startPos = [roundElement(owner["Position"], "X"), roundElement(owner["Position"], "Y")];
-    const startScale = [roundElement(owner["Scale"], "Y", 1, 100), roundElement(owner["Scale"], "X", 1, 100)];
-    const rotation = [roundElement(owner, "RotationSkewX"), roundElement(owner, "RotationSkewY")];
+    const startPos = convertToPointArray(owner["Position"], "X", "Y");
+    const startScale = convertToPointArray(owner["Scale"], "Y", "X", 1, MAX_PERCENT);
+    const rotation = convertToPointArray(owner, "RotationSkewX", "RotationSkewY");
 
     if (rotation[0] !== rotation[1]) {
-        rotation[0] = 360 - rotation[0];
+        rotation[0] = MAX_ANGLE - rotation[0];
     }
 
     const animationCount = animations.length;
@@ -246,6 +239,23 @@ function generateAnimations(owner, timeLines, animations) {
 }
 
 /**
+ *
+ * @param {Object} data
+ * @param {string} field1
+ * @param {string} field2
+ * @param {int} defaultValue
+ * @param {int} multiplier
+ * @returns {int[]}
+ */
+
+function convertToPointArray(data, field1, field2, defaultValue = 0, multiplier = 1) {
+    return [
+        roundElement(data, field1, defaultValue, multiplier),
+        roundElement(data, field2, defaultValue, multiplier)
+    ];
+}
+
+/**
  * @param {Object} animation
  * @returns {{name: string, length: int, frames: Object[]}}
  */
@@ -305,7 +315,6 @@ function roundElement(data, link, defaultValue = 0, multiplier = 1) {
 
 function convertToColor(data) {
     const color = data["Color"];
-    const MAX_CHANNEL = 255;
     const r = getProperty(color, "R", MAX_CHANNEL);
     const g = getProperty(color, "G", MAX_CHANNEL);
     const b = getProperty(color, "B", MAX_CHANNEL);
