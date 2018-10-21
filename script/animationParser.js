@@ -115,6 +115,8 @@ module.exports = function (bundleData) {
                     if (points) {
                         ease = [];
                         points.forEach(point => ease = ease.concat(convertToPointArray(point, "X", "Y", 0, MAX_PERCENT)));
+                        ease.splice(0, 2);
+                        ease.splice(3, 2);
                     }
                 }
                 else {
@@ -208,8 +210,8 @@ function generateAnimations(owner, timeLines, animations) {
                         if (prevFrame === null) {
                             prevFrame = {data: startScale};
                         }
-                        newFrame.data[0] -= prevFrame.data[0];
-                        newFrame.data[1] -= prevFrame.data[1];
+                        newFrame.data[0] /= prevFrame.data[0];
+                        newFrame.data[1] /= prevFrame.data[1];
                         prevFrame = frame;
                         break;
                     }
