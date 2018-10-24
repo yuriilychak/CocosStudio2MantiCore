@@ -238,4 +238,15 @@ if (dirs.indexOf(exportDir) === -1) {
     fs.mkdirSync(exportPath);
 }
 
-assetDirs.forEach(dir => generateAssetBundle(dir));
+async function generateBundles() {
+    const assetCount = assetDirs.length;
+
+    for (let i = 0; i < assetCount; ++i) {
+        await new Promise(resolve => {
+            generateAssetBundle(assetDirs[i]);
+            resolve();
+        });
+    }
+}
+
+generateBundles();

@@ -9,7 +9,9 @@ const actionTemplates = [
     "{0} atlas generation",
     "Bundle '{0}' doesn't have atlas folder. Step skipped",
     "Bundle '{0}' atlas dir doesn't have atlas files (need *.csi resolution). Step skipped",
-    "Generation of atlas '{0}' {1}"
+    "Generation of atlas '{0}' {1}",
+    "WARNING: 'main' atlas have more than one texture. Please regenerate it."
+
 ];
 
 let bundle = null;
@@ -54,7 +56,8 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
     const fontNames = fontBundle.names;
     const fontData = fontBundle.data;
     const fontCount = fontNames.length;
-    let i, j, atlasFileName, atlasName, atlasXmlString, atlasJsonString, atlasJson, meta, frameMap,
+    const suffix = ".json";
+    let i, j, atlasFileName, atlasName, atlasXmlString, atlasJsonString, atlasJson, meta, frameMap, atlasIndex, atlasPath,
         frameArray, key, frame, images,tmpPath, fontFiles, fontName, fontPath, fontChars, fontExportPath, imgChar, buffer;
 
     const command = [
@@ -78,6 +81,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
         "--trim-threshold 1",
         "--trim-margin 1",
         "--opt RGBA8888",
+        "--multipack"
     ];
 
     for (i = 0; i < atlasCount; ++i) {
@@ -132,52 +136,69 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
         }
 
         command[1] = tmpPath;
-        command[5] = path.join(exportPath, atlasName + ".json");
+        command[5] = path.join(exportPath, atlasName + "_{n}"+ suffix);
 
         execSync(command.join(" "));
         fileUtil.deleteDirRecursive(tmpPath);
 
-        atlasJsonString = fs.readFileSync(command[5], "utf8");
-        atlasJson = JSON.parse(atlasJsonString);
+        atlasIndex = 0;
 
-        meta = atlasJson["meta"];
-        frameMap = atlasJson["frames"];
+        while (true) {
+            atlasPath = path.join(exportPath, atlasName + "_" + atlasIndex + suffix);
 
-        atlasJson.scale = meta.scale;
-        atlasJson.size = [meta.size.w, meta.size.h];
-        atlasJson.images = [meta.image.split(".")[0]];
-
-        delete atlasJson["meta"];
-        delete atlasJson["animations"];
-
-        if (atlasName === "main") {
-            for (j = 0; j < fontCount; ++j) {
-                updateFontDimensions(frameMap, fontNames[j], fontData[j].chars);
+            if (!fs.existsSync(atlasPath)) {
+                break;
             }
+
+            atlasJsonString = fs.readFileSync(atlasPath, "utf8");
+            atlasJson = JSON.parse(atlasJsonString);
+
+            meta = atlasJson["meta"];
+            frameMap = atlasJson["frames"];
+
+            atlasJson.scale = meta.scale;
+            atlasJson.size = [meta.size.w, meta.size.h];
+            atlasJson.images = [meta.image.split(".")[0]];
+
+            delete atlasJson["meta"];
+            delete atlasJson["animations"];
+
+            if (atlasName + "_" + atlasIndex === "main_0") {
+                for (j = 0; j < fontCount; ++j) {
+                    updateFontDimensions(frameMap, fontNames[j], fontData[j].chars);
+                }
+            }
+            else if (atlasName.indexOf("main_") !== -1) {
+                logger.logMessage(actionTemplates[4]);
+            }
+
+            frameArray = [];
+
+            for (key in frameMap) {
+                frame = frameMap[key];
+                frame.id = getTextureIndex(key);
+                frame.sourceSize = [
+                    frame.sourceSize.w,
+                    frame.sourceSize.h
+                ];
+                frame.spriteDimensions = convertFrameToDimension(frame.spriteSourceSize);
+                frame.dimensions = convertFrameToDimension(frame.frame);
+                delete frame.spriteSourceSize;
+                delete frame.frame;
+                frameArray.push(frame);
+            }
+
+            atlasJson.name = atlasName;
+            atlasJson.frames = frameArray;
+
+            bundle.atlases.push(atlasJson);
+
+            fs.unlinkSync(atlasPath);
+
+            ++atlasIndex;
         }
 
-        frameArray = [];
 
-        for (key in frameMap) {
-            frame = frameMap[key];
-            frame.id = getTextureIndex(key);
-            frame.sourceSize = [
-                frame.sourceSize.w,
-                frame.sourceSize.h
-            ];
-            frame.spriteDimensions = convertFrameToDimension(frame.spriteSourceSize);
-            frame.dimensions = convertFrameToDimension(frame.frame);
-            delete frame.spriteSourceSize;
-            delete frame.frame;
-            frameArray.push(frame);
-        }
-
-        atlasJson.name = atlasName;
-        atlasJson.frames = frameArray;
-
-        bundle.atlases.push(atlasJson);
-
-        fs.unlinkSync(command[5]);
         logger.logMessage(actionTemplates[3], atlasName, "finish");
 
     }

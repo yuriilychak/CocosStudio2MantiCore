@@ -805,7 +805,7 @@ module.exports = function (bundle, bundleData) {
                     data.fileData.push(alpha);
                 }
     
-                const innerNodeSize = extractValue(data, 'InnerNodeSize', {})
+                const innerNodeSize = extractValue(data, 'InnerNodeSize', {});
                 data.content = generateDefaultTemplate();
                 data.content.dimensions[2] = extractValue(innerNodeSize, "Width", data.dimensions[2]);
                 data.content.dimensions[3] = extractValue(innerNodeSize, "Height", data.dimensions[3]);
@@ -885,7 +885,7 @@ module.exports = function (bundle, bundleData) {
             }
             case "TextAtlasObjectData": {
                 data.name = "txt" + data.name;
-                const textureIndex = getTextureIndex(data["LabelAtlasFileImage_CNB"]); 
+                const textureIndex = MathUtil.getTextureIndex(data["LabelAtlasFileImage_CNB"], bundle);
                 let atlasFontIndex = -1;
                 let atlasFontCount = bundle.atlasFonts.length;
                 let i, atlasFont;
@@ -1006,6 +1006,8 @@ module.exports = function (bundle, bundleData) {
      * @param {string} link
      * @param {string[]} fields
      * @param {*} defaultValue
+     * @param {boolean} [isRound = false]
+     * @param {boolean} [isFloat = false]
      */
     
     function unionFields(data, link, fields, defaultValue, isRound = false, isFloat = false) {
@@ -1118,7 +1120,7 @@ module.exports = function (bundle, bundleData) {
             value = data[link];
             
             if (value) {
-                data.fileData.push(getTextureIndex(value));
+                data.fileData.push(MathUtil.getTextureIndex(value, bundle));
             }
     
             delete data[link];
@@ -1167,46 +1169,6 @@ module.exports = function (bundle, bundleData) {
     
         bundle.anchors.push(anchor);
         return bundle.anchors.length - 1;
-    }
-    
-    /**
-     * @desc Add texture to cache, and returns index.
-     * @function
-     * @param {string} name
-     * @returns {int}
-     */
-    
-    function getTextureIndex(name) {
-        const decomposed = decomposeTexturePath(name);
-        const stringified = JSON.stringify(decomposed);
-        const textureCount = bundle.textures.length;
-        let i;
-        for (i = 0; i < textureCount; ++i) {
-            if (stringified === JSON.stringify(bundle.textures[i])) {
-                return i;
-            }
-        }
-        let result = bundle.textures.length;
-        bundle.textures.push(decomposed);
-    
-        return result;
-    }
-    
-    function decomposeTexturePath(name) {
-        const result = [];
-        const nameSplit = name.split("/");
-        const splitCount = nameSplit.length;
-        let index, i, part;
-        for (i = 0; i < splitCount; ++i) {
-            part = nameSplit[i];
-            index = bundle.textureParts.indexOf(part);
-            if (index === -1) {
-                index = bundle.textureParts.length;
-                bundle.textureParts.push(part);
-            }
-            result.push(index);
-        }
-        return result;
     }
     
     function getColorIndex(color) {
