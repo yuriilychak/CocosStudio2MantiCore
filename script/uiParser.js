@@ -1,10 +1,11 @@
+const CONSTANT = require("./constant");
+const MathUtil = require("./mathUtil");
+
 module.exports = function (bundle, bundleData) {
 
     bundle.componentNames = bundleData.names;
 
-    const COLOR_WHITE = 0xFFFFFF;
-    const ANCHOR_CENTER = [50, 50];
-    const MAX_CHANNEL = 255;
+    const ANCHOR_CENTER = [CONSTANT.HALF_PERCENT, CONSTANT.HALF_PERCENT];
     const SCROLL_DIRECTION = {
         NONE: 0,
         VERTICAL: 1,
@@ -59,7 +60,7 @@ module.exports = function (bundle, bundleData) {
     };
     
     const DEFAULT_TEMPLATE = generateDefaultTemplate(); 
-    const WHITE_COLOR_INDEX = getColorIndex(COLOR_WHITE);
+    const WHITE_COLOR_INDEX = getColorIndex(CONSTANT.COLOR_WHITE);
     
     const files = bundleData.data.map(element => formatData(element));
     
@@ -97,7 +98,7 @@ module.exports = function (bundle, bundleData) {
     }
     
     function formatElement(element, parent) {
-        swapPointToArray(element, "Scale", "scale", [100, 100], true, "Scale");
+        swapPointToArray(element, "Scale", "scale", [CONSTANT.MAX_PERCENT, CONSTANT.MAX_PERCENT], true, "Scale");
         swapPointToArray(element, "AnchorPoint", "anchor", [0, 0], true, "Scale");
 
         if (!element.Position) {
@@ -122,9 +123,9 @@ module.exports = function (bundle, bundleData) {
         }
 
         unionDimension(element, "dimensions", "Position", "Size", [0, 0], [1, 1], false);
-        unionDimension(element, "preDimensions", "PrePosition", "PreSize", [0, 0], [100, 100], true);
+        unionDimension(element, "preDimensions", "PrePosition", "PreSize", [0, 0], [CONSTANT.MAX_PERCENT, CONSTANT.MAX_PERCENT], true);
     
-        if (element.scale[0] === 100 && element.scale[1] === 100) {
+        if (element.scale[0] === CONSTANT.MAX_PERCENT && element.scale[1] === CONSTANT.MAX_PERCENT) {
             element.scale = null;
         }
         else {
@@ -137,7 +138,7 @@ module.exports = function (bundle, bundleData) {
         const swapOut = ["name", "interactive", "fontSize", "type", "children", "clipped", "colliderVisible", "visible"];
         const swapCount = swapIn.length;
     
-        element.alpha = Math.round(extractValue(element, "Alpha", 255) * 100 / 255); 
+        element.alpha = MathUtil.channelToPercent(extractValue(element, "Alpha", CONSTANT.MAX_CHANNEL));
     
         for (let i = 0; i < swapCount; ++i) {
             swapProperty(element, swapIn[i], swapOut[i]);
@@ -158,7 +159,7 @@ module.exports = function (bundle, bundleData) {
         unionFields(element, "rotation", ["RotationSkewX", "RotationSkewY"], 0, true);
     
         if (element.rotation !== null && element.rotation[1] !== element.rotation[2]) {
-            element.rotation[0] = 360 - element.rotation[0];
+            element.rotation[0] = CONSTANT.MAX_ANGLE - element.rotation[0];
         }
     
         const contentData = [
@@ -191,8 +192,8 @@ module.exports = function (bundle, bundleData) {
                 parentSize = parent.dimensions[3];
             }
             element.dimensions[1] = parentSize - element.dimensions[1];
-            element.anchor[1] = 100 - element.anchor[1];
-            element.preDimensions[1] = 100 - element.preDimensions[1];
+            element.anchor[1] = CONSTANT.MAX_PERCENT - element.anchor[1];
+            element.preDimensions[1] = CONSTANT.MAX_PERCENT - element.preDimensions[1];
         }
 
 
@@ -206,7 +207,7 @@ module.exports = function (bundle, bundleData) {
                 animation.name = index;
             });
         }
-    
+
         parseCustomComponents(element);
         updateByType(element);
     
@@ -332,22 +333,20 @@ module.exports = function (bundle, bundleData) {
     }
     
     function swapColor(data, link, newLink) {
-        if (!data.hasOwnProperty(link)) {
+        const color = MathUtil.convertToColor(data, link);
+
+        if (color === -1) {
             return;
         }
-        const color = data[link];
-        const red = extractValue(color, "R", MAX_CHANNEL);
-        const green = extractValue(color, "G", MAX_CHANNEL);
-        const blue = extractValue(color, "B", MAX_CHANNEL);
     
         delete data[link];
-        data[newLink] = getColorIndex((red << 16) + (green << 8) + (blue));
+        data[newLink] = color;
     }
     
     function swapPointToArray(data, link, newLink, defaultValue, isFloat = false, prefix = "") {
         let prevPoint = data[link];
     
-        if (!prevPoint || Object.keys(prevPoint) === 0) {
+        if (!prevPoint || Object.keys(prevPoint).length === 0) {
             data[newLink] = defaultValue;
             delete data[link];
             return;
@@ -366,7 +365,7 @@ module.exports = function (bundle, bundleData) {
             extractValue(point, prefix + "Y", defaultValue)
         ];
         const dimCount = result.length;
-        const multiplier = isFloat ? 100 : 1;
+        const multiplier = isFloat ? CONSTANT.MAX_PERCENT : 1;
         for (let i = 0; i < dimCount; ++i) {
             result[i] = Math.round(result[i] * multiplier);
         } 
@@ -394,7 +393,7 @@ module.exports = function (bundle, bundleData) {
             return;
         }
     
-        data[link] = !isFloat ? Math.round(data[link]) :  Math.round(data[link] * 100);
+        data[link] = !isFloat ? Math.round(data[link]) :  Math.round(data[link] * CONSTANT.MAX_PERCENT);
     }
     
     function updateContentData(data, link) {
@@ -492,7 +491,7 @@ module.exports = function (bundle, bundleData) {
                 break;
             }
             case "DOWN": {
-                data.fileData.push(DIRECTION.DOW);
+                data.fileData.push(DIRECTION.DOWN);
                 break;
             }
             case "UP": {
@@ -512,14 +511,14 @@ module.exports = function (bundle, bundleData) {
                     if (data["FileData"]) {
                         addTextures(data, "FileData");
                         data.fileData.push(PANEL_GRAPHIC_TYPE.SPRITE);
-                        data.fileData.push(getColorIndex(COLOR_WHITE));
-                        data.fileData.push(100);
+                        data.fileData.push(getColorIndex(CONSTANT.COLOR_WHITE));
+                        data.fileData.push(CONSTANT.MAX_PERCENT);
                     }
                     else {
-                        const alpha = Math.round(extractValue(data, "BackColorAlpha", 0) * 100/ 255);
+                        const alpha = MathUtil.channelToPercent(extractValue(data, "BackColorAlpha", 0));
                         data.fileData.push(-1);
                         data.fileData.push(PANEL_GRAPHIC_TYPE.COLOR);
-                        data.fileData.push(data["panelColor"] || getColorIndex(COLOR_WHITE));
+                        data.fileData.push(data["panelColor"] || getColorIndex(CONSTANT.COLOR_WHITE));
                         data.fileData.push(alpha);
                     }
                     data.name = "pnl" + data.name;
@@ -691,7 +690,7 @@ module.exports = function (bundle, bundleData) {
                     content.fileData = [getFontStyleIndex(fontStyle), getTextIndex(data["ButtonText"])];
                     content.name = "txtTitle";
                     content.dimensions = [position[0], position[1], data.dimensions[2], data.dimensions[3]];
-                    content.preDimension = [50, 50, 100,100];
+                    content.preDimension = [CONSTANT.HALF_PERCENT, CONSTANT.HALF_PERCENT, CONSTANT.MAX_PERCENT, CONSTANT.MAX_PERCENT];
                     content.scale = null;
                     content.anchor = getAnchorIndex(ANCHOR_CENTER);
                     content.margin = [0, 0, 0, 0];
@@ -752,7 +751,7 @@ module.exports = function (bundle, bundleData) {
                 data.name = "txt" + data.name;
                 data.type = UI_ELEMENT.LABEL;
     
-                fontStyle = createFontStyle();
+                const fontStyle = createFontStyle();
                 fontStyle.name = getFontIndex(data, "LabelBMFontFile_CNB");
                 fontStyle.size = bundle.fontData[fontStyle.name].size;
                 fontStyle.color = data["tint"];
@@ -780,7 +779,7 @@ module.exports = function (bundle, bundleData) {
                     data.dimensions[3] >> 1,
                     data.dimensions[2], data.dimensions[3]
                 ];
-                content.preDimensions = [50, 50, -1, -1];
+                content.preDimensions = [CONSTANT.HALF_PERCENT, CONSTANT.HALF_PERCENT, -1, -1];
                 content.percent = [true, true, false, false];
                 content.name = "btnIcon";
                 data.type = UI_ELEMENT.CHECK_BOX;
@@ -794,15 +793,15 @@ module.exports = function (bundle, bundleData) {
                 if (data["FileData"]) {
                     addTextures(data, "FileData");
                     data.fileData.push(PANEL_GRAPHIC_TYPE.SPRITE);
-                    data.fileData.push(getColorIndex(COLOR_WHITE));
-                    data.fileData.push(100);
+                    data.fileData.push(getColorIndex(CONSTANT.COLOR_WHITE));
+                    data.fileData.push(CONSTANT.MAX_PERCENT);
                 }
                 else {
                     data.fileData.push(-1);
                     const solidData = extractValue(data, "colliderVisible", 0);
-                    const alpha = Math.round(extractValue(data, "BackColorAlpha", 0) * 100/ 255);
+                    const alpha = MathUtil.channelToPercent(extractValue(data, "BackColorAlpha", 0));
                     data.fileData.push(solidData ? PANEL_GRAPHIC_TYPE.COLOR : PANEL_GRAPHIC_TYPE.NONE);
-                    data.fileData.push(data["panelColor"] || getColorIndex(COLOR_WHITE));
+                    data.fileData.push(data["panelColor"] || getColorIndex(CONSTANT.COLOR_WHITE));
                     data.fileData.push(alpha);
                 }
     
@@ -836,19 +835,19 @@ module.exports = function (bundle, bundleData) {
                 if (data["FileData"]) {
                     addTextures(data, "FileData");
                     data.fileData.push(PANEL_GRAPHIC_TYPE.SPRITE);
-                    data.fileData.push(getColorIndex(COLOR_WHITE));
-                    data.fileData.push(100);
+                    data.fileData.push(getColorIndex(CONSTANT.COLOR_WHITE));
+                    data.fileData.push(CONSTANT.MAX_PERCENT);
                 }
                 else {
                     data.fileData.push(-1);
                     const solidData = extractValue(data, "colliderVisible", 0);
-                    const alpha = Math.round(extractValue(data, "BackColorAlpha", 0) * 100/ 255);
+                    const alpha = MathUtil.channelToPercent(extractValue(data, "BackColorAlpha", 0));
                     data.fileData.push(solidData ? PANEL_GRAPHIC_TYPE.COLOR : PANEL_GRAPHIC_TYPE.NONE);
-                    data.fileData.push(data["panelColor"] || getColorIndex(COLOR_WHITE));
+                    data.fileData.push(data["panelColor"] || getColorIndex(CONSTANT.COLOR_WHITE));
                     data.fileData.push(alpha);
                 }
     
-                const innerNodeSize = extractValue(data, 'InnerNodeSize', {})
+                const innerNodeSize = extractValue(data, 'InnerNodeSize', {});
                 data.content = generateDefaultTemplate();
                 data.content.dimensions[2] = extractValue(innerNodeSize, "Width", data.dimensions[2]);
                 data.content.dimensions[3] = extractValue(innerNodeSize, "Height", data.dimensions[3]);
@@ -933,8 +932,9 @@ module.exports = function (bundle, bundleData) {
         }
     
         const childCount = children.length;
+        let child, i;
     
-        for (let i = 0; i < childCount; ++i) {
+        for (i = 0; i < childCount; ++i) {
             child = children[i];
             if (child.name === childName) {
                 children.splice(i, 1);
@@ -964,15 +964,15 @@ module.exports = function (bundle, bundleData) {
             margin: null,
             name: "default",
             interactive: false,
-            alpha: 100,
+            alpha: CONSTANT.MAX_PERCENT,
             type: 0,
-            tint: getColorIndex(COLOR_WHITE),
+            tint: getColorIndex(CONSTANT.COLOR_WHITE),
             slice9: null,
             stretch: null,
             edge: null,
             percent: null,
             fileData: null,
-            preDimensions: [0,100,100],
+            preDimensions: [0, 0,CONSTANT.MAX_PERCENT,CONSTANT.MAX_PERCENT],
             visible: true,
             animations: null
         };
@@ -1018,7 +1018,7 @@ module.exports = function (bundle, bundleData) {
             value = extractValue(data, fields[i], defaultValue);
     
             if (isFloat) {
-                value = Math.round(value * 100);
+                value = Math.round(value * CONSTANT.MAX_PERCENT);
     
             }
             else if (isRound) {
@@ -1110,7 +1110,7 @@ module.exports = function (bundle, bundleData) {
             linkArray = [linkArray];
         }
     
-        linkCount = linkArray.length;
+        const linkCount = linkArray.length;
         let i, link, value;
     
         for (i = 0; i < linkCount; ++i) {
@@ -1160,7 +1160,7 @@ module.exports = function (bundle, bundleData) {
     
         for (i = 0; i < anchorCount; ++i) {
             crtAnchor = bundle.anchors[i];
-            if (crtAnchor[0] === anchor[0] && crtAnchor[1] == anchor[1]) {
+            if (crtAnchor[0] === anchor[0] && crtAnchor[1] === anchor[1]) {
                 return i;
             }
         }

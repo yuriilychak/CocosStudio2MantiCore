@@ -1,0 +1,8 @@
+module.exports = {
+    DEFAULT_FPS: 60,
+    MAX_CHANNEL: 255,
+    MAX_PERCENT: 100,
+    MAX_ANGLE: 360,
+    HALF_PERCENT: 50,
+    COLOR_WHITE: 0xFFFFFF
+};

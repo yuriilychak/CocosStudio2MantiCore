@@ -1,3 +1,6 @@
+const CONSTANT = require("./constant");
+const MathUtil = require("./mathUtil");
+
 const ACTION_TYPE = {
     NONE: 0,
     POSITION: 1,
@@ -13,12 +16,8 @@ const ACTION_TYPE = {
 
 
 let fps;
-const MAX_CHANNEL = 255;
-const DEFAULT_FPS = 60;
-const MAX_PERCENT = 100;
-const MAX_ANGLE = 360;
 
-module.exports = function (bundleData) {
+module.exports = function (bundleData, bundle) {
     const animationList = bundleData["AnimationList"];
 
     if (!animationList || animationList.length === 0) {
@@ -28,10 +27,22 @@ module.exports = function (bundleData) {
     const animation = bundleData["Animation"];
     const objectData = bundleData["ObjectData"];
 
-    fps = Math.round(DEFAULT_FPS * animation["Speed"]);
+    fps = Math.round(CONSTANT.DEFAULT_FPS * animation["Speed"]);
     const timeLines = animation["Timelines"];
     const timeLineCount = timeLines.length;
     const tagTimeLines = {};
+    const frameNames = [
+        "Unknown",
+        "Position",
+        "Scale",
+        "Rotation",
+        "RotationSkew",
+        "CColor",
+        "Alpha",
+        "VisibleForFrame",
+        "FileData",
+        "Delay"
+    ];
     let actionTag, i, key, timeLine, type, frames, actionType, parsedFrames, easeData, points;
 
     for (i = 0; i < timeLineCount; ++i) {
@@ -43,32 +54,7 @@ module.exports = function (bundleData) {
             tagTimeLines[actionTag] = {};
         }
 
-        switch (type) {
-            case "Position": {
-                actionType = ACTION_TYPE.POSITION;
-                break;
-            }
-            case "Scale": {
-                actionType = ACTION_TYPE.SCALE;
-                break;
-            }
-            case "CColor": {
-                actionType = ACTION_TYPE.TINT;
-                break;
-            }
-            case "Alpha": {
-                actionType = ACTION_TYPE.ALPHA;
-                break;
-            }
-            case "VisibleForFrame": {
-                actionType = ACTION_TYPE.VISIBLE;
-                break;
-            }
-            case "RotationSkew": {
-                actionType = ACTION_TYPE.SKEW;
-                break;
-            }
-        }
+        actionType = frameNames.indexOf(type);
 
         frames = timeLine["Frames"];
         parsedFrames = frames.map(frame => {
@@ -82,39 +68,43 @@ module.exports = function (bundleData) {
                     break;
                 }
                 case ACTION_TYPE.SCALE: {
-                    data = convertToPointArray(frame, "X", "Y", 1, MAX_PERCENT);
+                    data = convertToPointArray(frame, "X", "Y", 1, CONSTANT.MAX_PERCENT);
                     break;
                 }
                 case ACTION_TYPE.TINT: {
-                    data.push(convertToColor(frame));
+                    data.push(MathUtil.convertToColor(frame, "Color"));
                     break;
                 }
                 case ACTION_TYPE.ALPHA: {
-                    data = [Math.round(frame["Value"] * MAX_PERCENT / MAX_CHANNEL)];
+                    data.push(MathUtil.channelToPercent(frame["Value"]));
                     break;
                 }
                 case ACTION_TYPE.VISIBLE: {
-                    data = [Math.round(frame["Value"] ? 1 : 0)];
+                    data.push(Math.round(frame["Value"] ? 1 : 0));
                     break;
                 }
                 case ACTION_TYPE.SKEW: {
                     data = convertToPointArray(frame, "X", "Y");
 
                     if (data[0] !== data[1]) {
-                        data[0] = MAX_ANGLE - data[0];
+                        data[0] = CONSTANT.MAX_ANGLE - data[0];
                     }
+                    break;
+                }
+                case ACTION_TYPE.FRAME: {
+                    data.push(MathUtil.getTextureIndex(frame["TextureFile"]["Path"].split(".")[0], bundle));
                     break;
                 }
             }
 
-            if (actionType !== ACTION_TYPE.VISIBLE) {
+            if (actionType !== ACTION_TYPE.VISIBLE &&  actionType !== ACTION_TYPE.FRAME) {
                 easeData = frame["EasingData"];
                 const id = easeData["Type"];
                 if (id === -1) {
                     points = easeData["Points"];
                     if (points) {
                         ease = [];
-                        points.forEach(point => ease = ease.concat(convertToPointArray(point, "X", "Y", 0, MAX_PERCENT)));
+                        points.forEach(point => ease = ease.concat(convertToPointArray(point, "X", "Y", 0, CONSTANT.MAX_PERCENT)));
                         ease.splice(0, 2);
                         ease.splice(3, 2);
                     }
@@ -163,11 +153,11 @@ module.exports = function (bundleData) {
 
 function generateAnimations(owner, timeLines, animations) {
     const startPos = convertToPointArray(owner["Position"], "X", "Y");
-    const startScale = convertToPointArray(owner["Scale"], "Y", "X", 1, MAX_PERCENT);
+    const startScale = convertToPointArray(owner["Scale"], "Y", "X", 1, CONSTANT.MAX_PERCENT);
     const rotation = convertToPointArray(owner, "RotationSkewX", "RotationSkewY");
 
     if (rotation[0] !== rotation[1]) {
-        rotation[0] = MAX_ANGLE - rotation[0];
+        rotation[0] = CONSTANT.MAX_ANGLE - rotation[0];
     }
 
     const animationCount = animations.length;
@@ -306,30 +296,5 @@ function findOwner(actionTag, data) {
 
 
 function roundElement(data, link, defaultValue = 0, multiplier = 1) {
-    return Math.round(getProperty(data, link, defaultValue) * multiplier);
-}
-
-/**
- *
- * @param {Object} data
- * @returns {int}
- */
-
-function convertToColor(data) {
-    const color = data["Color"];
-    const r = getProperty(color, "R", MAX_CHANNEL);
-    const g = getProperty(color, "G", MAX_CHANNEL);
-    const b = getProperty(color, "B", MAX_CHANNEL);
-    return (r << 16) + (g << 8) + b;
-}
-
-/**
- * @param {Object} data
- * @param {string} link
- * @param {*} defaultValue
- * @returns {*}
- */
-
-function getProperty(data, link, defaultValue) {
-    return data.hasOwnProperty(link) ? data[link] : defaultValue;
+    return Math.round(MathUtil.getProperty(data, link, defaultValue) * multiplier);
 }

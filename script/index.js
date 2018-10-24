@@ -170,8 +170,8 @@ function createAssetBundle(bundle, mainPath, commonPath, name, isMobile) {
         data: []
     };
 
-    getAssetElementData(uiData, mainPath);
-    getAssetElementData(uiData, commonPath);
+    getAssetElementData(uiData, mainPath, bundle);
+    getAssetElementData(uiData, commonPath, bundle);
 
     addUIToBundle(bundle, uiData);
 
@@ -184,9 +184,10 @@ function createAssetBundle(bundle, mainPath, commonPath, name, isMobile) {
  * @function
  * @param {{names: string[], data: Object[]}} uiData
  * @param {?string} dirPath
+ * @param {Object} bundle
  */
 
-function getAssetElementData(uiData, dirPath)  {
+function getAssetElementData(uiData, dirPath, bundle)  {
     if (dirPath === null) {
         return;
     }
@@ -200,7 +201,7 @@ function getAssetElementData(uiData, dirPath)  {
     uiData.data = uiData.data.concat(assets.map(asset => {
         const assetPath = path.join(dirPath, asset);
         const data = JSON.parse(fs.readFileSync(assetPath));
-        parseAnimations(data["Content"]["Content"]);
+        parseAnimations(data["Content"]["Content"], bundle);
         return data["Content"]["Content"]["ObjectData"];
     }));
 }
