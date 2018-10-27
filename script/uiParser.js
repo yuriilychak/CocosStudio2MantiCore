@@ -338,9 +338,9 @@ module.exports = function (bundle, bundleData) {
         if (color === -1) {
             return;
         }
-    
+
         delete data[link];
-        data[newLink] = color;
+        data[newLink] = getColorIndex(color);
     }
     
     function swapPointToArray(data, link, newLink, defaultValue, isFloat = false, prefix = "") {
