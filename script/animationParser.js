@@ -122,6 +122,27 @@ module.exports = function (bundleData, bundle) {
             };
         });
 
+
+
+        if (actionType === ACTION_TYPE.SKEW) {
+            let isRotation = true;
+
+            parsedFrames.forEach(frame => {
+                if (frame.data[0] === frame.data[1]) {
+                    return;
+                }
+                isRotation = false;
+            });
+
+            if (isRotation) {
+                parsedFrames.forEach(frame => {
+                    frame.type = ACTION_TYPE.ROTATION;
+                    frame.data.pop();
+                });
+                actionType = ACTION_TYPE.ROTATION;
+            }
+        }
+
         tagTimeLines[actionTag][actionType] = parsedFrames;
     }
 
