@@ -595,7 +595,7 @@ module.exports = function (bundle, bundleData) {
                 const outlineEnabled = extractValue(data, "OutlineEnabled", false);
                 if (outlineEnabled) {
                     fontStyle.outlineColor = extractValue(data, "outlineColor", WHITE_COLOR_INDEX);
-                    fontStyle.outlineSize = extractValue(data, "OutlineSize", 0);
+                    fontStyle.outlineSize = extractValue(data, "OutlineSize", 1);
                 }
     
                 const shadowEnabled = extractValue(data, "ShadowEnabled", false);
