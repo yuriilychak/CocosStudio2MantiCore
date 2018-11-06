@@ -603,7 +603,7 @@ module.exports = function (bundle, bundleData) {
                     fontStyle.shadowColor = extractValue(data, "shadowColor", WHITE_COLOR_INDEX);
                     fontStyle.shadowOffset = [
                         extractValue(data, "ShadowOffsetX", 0),
-                        extractValue(data, "ShadowOffsetY", 0)
+                        -extractValue(data, "ShadowOffsetY", 0)
                     ];
                 }
     
