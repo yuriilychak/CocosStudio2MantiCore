@@ -471,6 +471,10 @@ module.exports = function (bundle, bundleData) {
                 data.content = extractChild(data, "btnIcon");
                 break;
             }
+            case "LABEL": {
+                data.autoSize = parseInt(userData["AUTO_SIZE"] || 0, 10);
+                break;
+            }
         }
     }
     
@@ -607,7 +611,7 @@ module.exports = function (bundle, bundleData) {
                     ];
                 }
     
-                data.fileData = [getFontStyleIndex(fontStyle), getTextIndex(data["LabelText"])];
+                data.fileData = [getFontStyleIndex(fontStyle), getTextIndex(data["LabelText"]), data.autoSize || 0];
     
                 break;
             }
