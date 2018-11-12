@@ -473,6 +473,7 @@ module.exports = function (bundle, bundleData) {
             }
             case "LABEL": {
                 data.autoSize = parseInt(userData["AUTO_SIZE"] || 0, 10);
+                data.letterSpacing = parseInt(userData["LETTER_SPACING"] || 0, 10);
                 break;
             }
         }
@@ -611,7 +612,12 @@ module.exports = function (bundle, bundleData) {
                     ];
                 }
     
-                data.fileData = [getFontStyleIndex(fontStyle), getTextIndex(data["LabelText"]), data.autoSize || 0];
+                data.fileData = [
+                    getFontStyleIndex(fontStyle),
+                    getTextIndex(data["LabelText"]),
+                    data.autoSize || 0,
+                    data.letterSpacing || 0
+                ];
     
                 break;
             }
@@ -651,7 +657,9 @@ module.exports = function (bundle, bundleData) {
                 data.fileData = [
                     getFontStyleIndex(fontStyle), 
                     getTextIndex(data["LabelText"]),
-                    index
+                    index,
+                    data.autoSize || 0,
+                    data.letterSpacing || 0
                 ];
                 
                 break;
@@ -917,7 +925,11 @@ module.exports = function (bundle, bundleData) {
                             ]
                     });
                 }
-                data.fileData.push(getTextIndex(data["LabelText"]));
+                data.fileData.push(
+                    getTextIndex(data["LabelText"]),
+                    data.autoSize || 0,
+                    data.letterSpacing || 0
+                );
                 data.type = UI_ELEMENT.ATLAS_LABEL;
                 break;
             }
