@@ -699,7 +699,7 @@ module.exports = function (bundle, bundleData) {
                         HORIZONTAL_ALIGN.CENTER,
                         VERTICAL_ALIGN.MIDDLE
                     ];
-                    content.fileData = [getFontStyleIndex(fontStyle), getTextIndex(data["ButtonText"])];
+                    content.fileData = [getFontStyleIndex(fontStyle), getTextIndex(data["ButtonText"]), 0, 0];
                     content.name = "txtTitle";
                     content.dimensions = [position[0], position[1], data.dimensions[2], data.dimensions[3]];
                     content.preDimension = [CONSTANT.HALF_PERCENT, CONSTANT.HALF_PERCENT, CONSTANT.MAX_PERCENT, CONSTANT.MAX_PERCENT];
