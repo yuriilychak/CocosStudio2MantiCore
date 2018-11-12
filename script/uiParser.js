@@ -838,6 +838,9 @@ module.exports = function (bundle, bundleData) {
                         break;
                     }
                 }
+
+                data.fileData.push(data.IsBounceEnabled ? 1 : 0);
+
                 break;
             }
             case "ListViewObjectData": {
@@ -878,6 +881,7 @@ module.exports = function (bundle, bundleData) {
                 }
     
                 data.fileData.push(extractValue(data, "ItemMargin", 0));
+                data.fileData.push(data.IsBounceEnabled ? 1 : 0);
                 break;
             }
             case "Slider": {
