@@ -94,7 +94,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
         atlasXmlString = fs.readFileSync(path.join(atlasDirPath, atlasFileName), "utf8");
         images = atlasXmlString.split("\n")
             .filter(str => str.indexOf("<FilePathData Path=") !== -1)
-            .map(str => str.replace('      <FilePathData Path="', "").replace('" />\r', ""));
+            .map(str => str.replace('      <FilePathData Path="', "").replace('" />\r', "").replace('" />', ""));
 
         images.forEach(image => fileUtil.copyFile(sourcePath, tmpPath, image));
 
