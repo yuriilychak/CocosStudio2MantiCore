@@ -618,6 +618,8 @@ module.exports = function (bundle, bundleData) {
                     data.autoSize || 0,
                     data.letterSpacing || 0
                 ];
+
+                delete data["tint"];
     
                 break;
             }
@@ -661,6 +663,8 @@ module.exports = function (bundle, bundleData) {
                     data.autoSize || 0,
                     data.letterSpacing || 0
                 ];
+
+                delete data["tint"];
                 
                 break;
             }
@@ -770,6 +774,8 @@ module.exports = function (bundle, bundleData) {
                 fontStyle.align = [ HORIZONTAL_ALIGN.CENTER, VERTICAL_ALIGN.MIDDLE];
     
                 data.fileData = [getFontStyleIndex(fontStyle), getTextIndex(data["LabelText"])];
+
+                delete data["tint"];
     
                 break;
             }
