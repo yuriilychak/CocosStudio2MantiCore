@@ -40,15 +40,17 @@ module.exports = function (bundle, bundleData) {
     };
     
     const HORIZONTAL_ALIGN = {
-        LEFT: 0,
-        CENTER: 1,
-        RIGHT: 2
+        NONE: 0,
+        LEFT: 1,
+        CENTER: 2,
+        RIGHT: 3
     };
     
     const VERTICAL_ALIGN = {
-        TOP: 0,
-        MIDDLE: 1,
-        BOTTOM: 2
+        NONE: 0,
+        TOP: 1,
+        MIDDLE: 2,
+        BOTTOM: 3
     };
     
     const DIRECTION = {
