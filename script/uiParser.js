@@ -287,7 +287,7 @@ module.exports = function (bundle, bundleData) {
             }
         }
         else {
-            edge.push(-1);
+            edge.push(HORIZONTAL_ALIGN.NONE);
         }
     
         if (result["vertical"]) {
@@ -307,7 +307,7 @@ module.exports = function (bundle, bundleData) {
             }
         }
         else {
-            edge.push(-1);
+            edge.push(VERTICAL_ALIGN.NONE);
         }
     
         data.edge = !(edge[0] === -1 && edge[1] === -1) ? edge : null;
