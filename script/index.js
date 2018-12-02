@@ -1,6 +1,7 @@
 const addUIToBundle = require("./uiParser");
 const addFontToBundle = require("./fontParser");
 const generateAtlases = require("./atlasParser");
+const addSpineBundle = require("./spineParser");
 const fileUtil = require("./fileUtils");
 const parseAnimations = require("./animationParser");
 const logger = require('./logger');
@@ -100,6 +101,8 @@ async function generateAssetBundle(dirName) {
     const elementDirPath = path.join(assetDirPath, elementDir);
     const elementDirs = fs.readdirSync(elementDirPath);
 
+    const spineBundle = addSpineBundle(dirName, sourceDirPath,  workingDir);
+
     const desktopDir = "desktop";
     const commonDir = "common";
     const mobileDir = "mobile";
@@ -122,6 +125,8 @@ async function generateAssetBundle(dirName) {
         bundle.textureParts = atlasBundle.textureParts;
         bundle.atlases = atlasBundle.atlases;
         bundle.name = dirName;
+        bundle.skeletons = spineBundle.skeletons;
+        bundle.skeletonNames = spineBundle.skeletonNames;
         logger.logMessage(actionTemplates[2], desktopDir);
         createAssetBundle(bundle, desktopPath, commonPath, dirName, false);
     }
@@ -137,6 +142,8 @@ async function generateAssetBundle(dirName) {
         bundle.textureParts = atlasBundle.textureParts;
         bundle.atlases = atlasBundle.atlases;
         bundle.name = dirName;
+        bundle.skeletons = spineBundle.skeletons;
+        bundle.skeletonNames = spineBundle.skeletonNames;
         logger.logMessage(actionTemplates[2], mobileDir);
         createAssetBundle(bundle, mobilePath, commonPath, dirName, true);
     }
@@ -229,6 +236,8 @@ function createEmptyAssetBundle() {
         textures: [],
         textureParts: [],
         ui: [],
+        skeletons: [],
+        skeletonNames: [],
         bundleType: 1, //Asset bundle,
         name: ""
     }
