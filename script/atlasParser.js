@@ -4,6 +4,9 @@ const pngjs = require('pngjs');
 const fileUtil = require("./fileUtils");
 const logger = require("./logger");
 const { execSync } = require('child_process');
+const webp = require('webp-converter');
+const imagemin = require('imagemin');
+const imageminPngquant = require('imagemin-pngquant');
 
 const actionTemplates = [
     "{0} atlas generation",
@@ -150,6 +153,8 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
                 break;
             }
 
+            await pngToWebP(path.join(exportPath, atlasName + "_" + atlasIndex + ".png"));
+
             atlasJsonString = fs.readFileSync(atlasPath, "utf8");
             atlasJson = JSON.parse(atlasJsonString);
 
@@ -202,6 +207,8 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
         logger.logMessage(actionTemplates[3], atlasName, "finish");
 
     }
+    await compressPNG(exportPath);
+
     logger.logMessage(actionTemplates[0], "Finish");
 
     return bundle;
@@ -270,4 +277,21 @@ function decomposeTexturePath(name) {
         result.push(index);
     }
     return result;
+}
+
+async function pngToWebP(path) {
+    return new Promise((resolve, reject) => {
+        webp.cwebp(path, path.replace(".png", ".webp"), "-q 85", (status) => {
+            console.log("WebP for " + path  + "created successfully");
+            resolve();
+        });
+    });
+}
+
+async function compressPNG(path) {
+    const files = await imagemin([path + "/*.png"], path, {
+        plugins: [
+            imageminPngquant({quality: '65-70'})
+        ]
+    });
 }
