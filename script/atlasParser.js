@@ -13,8 +13,8 @@ const actionTemplates = [
     "Bundle '{0}' doesn't have atlas folder. Step skipped",
     "Bundle '{0}' atlas dir doesn't have atlas files (need *.csi resolution). Step skipped",
     "Generation of atlas '{0}' {1}",
-    "WARNING: 'main' atlas have more than one texture. Please regenerate it."
-
+    "WARNING: 'main' atlas have more than one texture. Please regenerate it.",
+    "Optimize PNG's: {0}"
 ];
 
 let bundle = null;
@@ -25,7 +25,6 @@ let bundle = null;
  * @param {string} sourcePath
  * @param {string} rootPath
  * @param {string} exportPath
- * @param {Function} onCompleteCallback
  */
 
 module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, exportPath) {
@@ -207,7 +206,9 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
         logger.logMessage(actionTemplates[3], atlasName, "finish");
 
     }
+    logger.logMessage(actionTemplates[5], "Start");
     await compressPNG(exportPath);
+    logger.logMessage(actionTemplates[5], "Finish");
 
     logger.logMessage(actionTemplates[0], "Finish");
 
@@ -289,7 +290,7 @@ async function pngToWebP(path) {
 }
 
 async function compressPNG(path) {
-    const files = await imagemin([path + "/*.png"], path, {
+    await imagemin([path + "/*.png"], path, {
         plugins: [
             imageminPngquant({quality: '65-70'})
         ]

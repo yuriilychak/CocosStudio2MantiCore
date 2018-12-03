@@ -9,7 +9,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "imagemin": "^6.0.0",
+    "imagemin-pngquant": "^6.0.0",
     "npm": "^6.4.1",
-    "pngjs": "^3.3.3"
+    "pngjs": "^3.3.3",
+    "webp-converter": "^2.1.6"
   }
 }
