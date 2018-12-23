@@ -98,6 +98,7 @@ async function generateAssetBundle(dirName) {
     const fontBundle = addFontToBundle(dirName, sourceDirPath);
 
     const atlasBundle = await generateAtlases(fontBundle, dirName, sourceDirPath, workingDir, path.join(exportPath, dirName));
+
     const elementDirPath = path.join(assetDirPath, elementDir);
     const elementDirs = fs.readdirSync(elementDirPath);
 
@@ -117,39 +118,44 @@ async function generateAssetBundle(dirName) {
     logger.logMessage(actionTemplates[1], desktopDir, hasDesktop);
     logger.logMessage(actionTemplates[1], mobileDir, hasMobile);
 
-    if (hasDesktop || hasCommon) {
-        const bundle = createEmptyAssetBundle();
-        bundle.fonts = fontBundle.names;
-        bundle.fontData = fontBundle.data;
-        bundle.textures = atlasBundle.textures;
-        bundle.textureParts = atlasBundle.textureParts;
-        bundle.atlases = atlasBundle.atlases;
-        bundle.name = dirName;
-        bundle.skeletons = spineBundle.skeletons;
-        bundle.skeletonNames = spineBundle.skeletonNames;
-        logger.logMessage(actionTemplates[2], desktopDir);
-        createAssetBundle(bundle, desktopPath, commonPath, dirName, false);
-    }
-    else {
-        logger.logMessage(actionTemplates[3], dirName, desktopDir);
+    const resolutions = ["ud", "hd", "sd"];
+    const resolutionCount = resolutions.length;
+    for (let i = 0; i < resolutionCount; ++i) {
+        if (hasDesktop || hasCommon) {
+            const bundle = createEmptyAssetBundle();
+            bundle.fonts = fontBundle.names;
+            bundle.fontData = fontBundle[resolutions[i]];
+            bundle.textures = atlasBundle.textures;
+            bundle.textureParts = atlasBundle.textureParts;
+            bundle.atlases = atlasBundle[resolutions[i]];
+            bundle.name = dirName;
+            bundle.skeletons = spineBundle.skeletons;
+            bundle.skeletonNames = spineBundle.skeletonNames;
+            logger.logMessage(actionTemplates[2], desktopDir);
+            createAssetBundle(bundle, desktopPath, commonPath, dirName, false, resolutions[i]);
+        }
+        else {
+            logger.logMessage(actionTemplates[3], dirName, desktopDir);
+        }
+
+        if (hasMobile || hasCommon) {
+            const bundle = createEmptyAssetBundle();
+            bundle.fonts = fontBundle.names;
+            bundle.fontData = fontBundle[resolutions[i]];
+            bundle.textures = atlasBundle.textures;
+            bundle.textureParts = atlasBundle.textureParts;
+            bundle.atlases = atlasBundle[resolutions[i]];
+            bundle.name = dirName;
+            bundle.skeletons = spineBundle.skeletons;
+            bundle.skeletonNames = spineBundle.skeletonNames;
+            logger.logMessage(actionTemplates[2], mobileDir);
+            createAssetBundle(bundle, mobilePath, commonPath, dirName, true, resolutions[i]);
+        }
+        else {
+            logger.logMessage(actionTemplates[3], dirName, mobileDir);
+        }
     }
 
-    if (hasMobile || hasCommon) {
-        const bundle = createEmptyAssetBundle();
-        bundle.fonts = fontBundle.names;
-        bundle.fontData = fontBundle.data;
-        bundle.textures = atlasBundle.textures;
-        bundle.textureParts = atlasBundle.textureParts;
-        bundle.atlases = atlasBundle.atlases;
-        bundle.name = dirName;
-        bundle.skeletons = spineBundle.skeletons;
-        bundle.skeletonNames = spineBundle.skeletonNames;
-        logger.logMessage(actionTemplates[2], mobileDir);
-        createAssetBundle(bundle, mobilePath, commonPath, dirName, true);
-    }
-    else {
-        logger.logMessage(actionTemplates[3], dirName, mobileDir);
-    }
 
     logger.logMessage(actionTemplates[0], dirName, "finish");
 }
@@ -163,8 +169,8 @@ async function generateAssetBundle(dirName) {
  * @param {string} name
  * @param {boolean} isMobile
  */
-function createAssetBundle(bundle, mainPath, commonPath, name, isMobile) {
-    const bundleName = "bundle_" + (isMobile ? "m" : "d") + ".json";
+function createAssetBundle(bundle, mainPath, commonPath, name, isMobile, resolution) {
+    const bundleName = "bundle_" + (isMobile ? "m" : "d") + "_" + resolution + ".json";
     const bundlePath = path.join(exportPath, name);
     const exportDirs = fs.readdirSync(exportPath);
     const bundleFilePath = path.join(bundlePath, bundleName);

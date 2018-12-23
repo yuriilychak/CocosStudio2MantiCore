@@ -59,8 +59,10 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
     const fontData = fontBundle.data;
     const fontCount = fontNames.length;
     const suffix = ".json";
-    let i, j, atlasFileName, atlasName, atlasXmlString, atlasJsonString, atlasJson, meta, frameMap, atlasIndex, atlasPath,
-        frameArray, key, frame, images,tmpPath, fontFiles, fontName, fontPath, fontChars, fontExportPath, imgChar, buffer;
+    const resolutions = ["ud", "hd", "sd"];
+    const resolutionCount = resolutions.length;
+    let i, j, k, atlasFileName, atlasName, atlasXmlString, atlasJsonString, atlasJson, meta, frameMap, atlasIndex, atlasPath,
+        frameArray, key, frame, images,tmpPath, fontFiles, fontName, fontPath, fontChars, fontExportPath, imgChar, buffer, fileName;
 
     const command = [
         "TexturePacker",
@@ -83,8 +85,15 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
         "--trim-threshold 1",
         "--trim-margin 1",
         "--opt RGBA8888",
-        "--multipack"
+        "--multipack",
+        "--variant 1:ud",
+        "--variant 0.5:hd",
+        "--variant 0.25:sd",
     ];
+
+    for (i = 0; i < resolutionCount; ++i) {
+        bundle[resolutions[i]] = [];
+    }
 
     for (i = 0; i < atlasCount; ++i) {
         atlasFileName = atlasFiles[i];
@@ -138,76 +147,84 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
         }
 
         command[1] = tmpPath;
-        command[5] = path.join(exportPath, atlasName + "_{n}"+ suffix);
+        command[5] = path.join(exportPath, atlasName + "_{n}_{v}"+ suffix);
 
         execSync(command.join(" "));
         fileUtil.deleteDirRecursive(tmpPath);
 
-        atlasIndex = 0;
 
-        while (true) {
-            atlasPath = path.join(exportPath, atlasName + "_" + atlasIndex + suffix);
 
-            if (!fs.existsSync(atlasPath)) {
-                break;
-            }
 
-            await pngToWebP(path.join(exportPath, atlasName + "_" + atlasIndex + ".png"));
 
-            atlasJsonString = fs.readFileSync(atlasPath, "utf8");
-            atlasJson = JSON.parse(atlasJsonString);
+        for (k = 0; k < resolutionCount; ++k) {
+            atlasIndex = 0;
 
-            meta = atlasJson["meta"];
-            frameMap = atlasJson["frames"];
+            while (true) {
+                fileName = atlasName + "_" + atlasIndex + "_" + resolutions[k];
+                atlasPath = path.join(exportPath, fileName + suffix);
 
-            atlasJson.scale = meta.scale;
-            atlasJson.size = [meta.size.w, meta.size.h];
-            atlasJson.images = [meta.image.split(".")[0]];
-
-            delete atlasJson["meta"];
-            delete atlasJson["animations"];
-
-            if (atlasName + "_" + atlasIndex === "main_0") {
-                for (j = 0; j < fontCount; ++j) {
-                    updateFontDimensions(frameMap, fontNames[j], fontData[j].chars);
+                if (!fs.existsSync(atlasPath)) {
+                    break;
                 }
+
+                await pngToWebP(path.join(exportPath, fileName + ".png"));
+
+                atlasJsonString = fs.readFileSync(atlasPath, "utf8");
+                atlasJson = JSON.parse(atlasJsonString);
+
+                meta = atlasJson["meta"];
+                frameMap = atlasJson["frames"];
+
+                atlasJson.scale = meta.scale;
+                atlasJson.size = [meta.size.w, meta.size.h];
+                atlasJson.images = [meta.image.split(".")[0]];
+
+                delete atlasJson["meta"];
+                delete atlasJson["animations"];
+
+                if (fileName.indexOf("main_0") === 0) {
+                    fontBundle[resolutions[k]] = [];
+
+                    for (j = 0; j < fontCount; ++j) {
+                        updateFontDimensions(frameMap, fontNames[j], fontData[j], fontBundle[resolutions[k]], fontBundle[resolutions[k]]);
+                    }
+                }
+                else if (fileName.indexOf("main_") !== -1) {
+                    logger.logMessage(actionTemplates[4]);
+                }
+
+                frameArray = [];
+
+                for (key in frameMap) {
+                    frame = frameMap[key];
+                    frame.id = getTextureIndex(key);
+                    frame.sourceSize = [
+                        frame.sourceSize.w,
+                        frame.sourceSize.h
+                    ];
+                    frame.spriteDimensions = convertFrameToDimension(frame.spriteSourceSize);
+                    frame.dimensions = convertFrameToDimension(frame.frame);
+                    delete frame.spriteSourceSize;
+                    delete frame.frame;
+                    frameArray.push(frame);
+                }
+
+                atlasJson.name = atlasName;
+                atlasJson.frames = frameArray;
+
+                bundle.atlases.push(atlasJson);
+                bundle[resolutions[k]].push(atlasJson);
+
+                fs.unlinkSync(atlasPath);
+
+                ++atlasIndex;
             }
-            else if (atlasName.indexOf("main_") !== -1) {
-                logger.logMessage(actionTemplates[4]);
-            }
-
-            frameArray = [];
-
-            for (key in frameMap) {
-                frame = frameMap[key];
-                frame.id = getTextureIndex(key);
-                frame.sourceSize = [
-                    frame.sourceSize.w,
-                    frame.sourceSize.h
-                ];
-                frame.spriteDimensions = convertFrameToDimension(frame.spriteSourceSize);
-                frame.dimensions = convertFrameToDimension(frame.frame);
-                delete frame.spriteSourceSize;
-                delete frame.frame;
-                frameArray.push(frame);
-            }
-
-            atlasJson.name = atlasName;
-            atlasJson.frames = frameArray;
-
-            bundle.atlases.push(atlasJson);
-
-            fs.unlinkSync(atlasPath);
-
-            ++atlasIndex;
         }
-
-
         logger.logMessage(actionTemplates[3], atlasName, "finish");
 
     }
     logger.logMessage(actionTemplates[5], "Start");
-    await compressPNG(exportPath);
+    //await compressPNG(exportPath);
     logger.logMessage(actionTemplates[5], "Finish");
 
     logger.logMessage(actionTemplates[0], "Finish");
@@ -215,7 +232,9 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
     return bundle;
 };
 
-function updateFontDimensions(atlasFrames, fontName, chars) {
+function updateFontDimensions(atlasFrames, fontName, fontData, resolutionBundle) {
+    const resultData = JSON.parse(JSON.stringify(fontData));
+    const chars = resultData.chars;
     const charCount = chars.length;
     let i, charData, charFrame, frame;
 
@@ -229,6 +248,7 @@ function updateFontDimensions(atlasFrames, fontName, chars) {
         charData.dimensions = convertFrameToDimension(frame.frame);
         delete atlasFrames[charFrame];
     }
+    resolutionBundle.push(resultData);
 }
 
 function convertFrameToDimension(data) {
@@ -292,7 +312,7 @@ async function pngToWebP(path) {
 async function compressPNG(path) {
     await imagemin([path + "/*.png"], path, {
         plugins: [
-            imageminPngquant({quality: '65-70'})
+            imageminPngquant({quality: '85-95'})
         ]
     });
 }
