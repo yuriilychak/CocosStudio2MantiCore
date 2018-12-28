@@ -4,8 +4,9 @@ const generateAtlases = require("./atlasParser");
 const addSpineBundle = require("./spineParser");
 const fileUtil = require("./fileUtils");
 const parseAnimations = require("./animationParser");
+const parseParticles = require("./particleParser");
 const logger = require('./logger');
-const fs = require("fs"); 
+const fs = require("fs");
 const path = require('path');
 
 
@@ -94,9 +95,12 @@ async function generateAssetBundle(dirName) {
         return;
     }
 
+
+
     const sourceDirPath = path.join(rootDirPath, sourceDir);
     const fontBundle = addFontToBundle(dirName, sourceDirPath);
 
+    const particleData = parseParticles(sourceDirPath, workingDir);
     const atlasBundle = await generateAtlases(fontBundle, dirName, sourceDirPath, workingDir, path.join(exportPath, dirName));
 
     const elementDirPath = path.join(assetDirPath, elementDir);
@@ -131,6 +135,8 @@ async function generateAssetBundle(dirName) {
             bundle.name = dirName;
             bundle.skeletons = spineBundle.skeletons;
             bundle.skeletonNames = spineBundle.skeletonNames;
+            bundle.particleNames = particleData.particleNames;
+            bundle.particleData = particleData.particleData;
             logger.logMessage(actionTemplates[2], desktopDir);
             createAssetBundle(bundle, desktopPath, commonPath, dirName, false, resolutions[i]);
         }
@@ -148,6 +154,8 @@ async function generateAssetBundle(dirName) {
             bundle.name = dirName;
             bundle.skeletons = spineBundle.skeletons;
             bundle.skeletonNames = spineBundle.skeletonNames;
+            bundle.particleNames = particleData.particleNames;
+            bundle.particleData = particleData.particleData;
             logger.logMessage(actionTemplates[2], mobileDir);
             createAssetBundle(bundle, mobilePath, commonPath, dirName, true, resolutions[i]);
         }
@@ -231,21 +239,23 @@ function createEmptyAssetBundle() {
         animationNames: [],
         atlases: [],
         atlasFonts: [],
+        bundleType: 1, //Asset bundle,
         colors: [],
         componentNames: [],
         elementNames: [],
         fonts: [],
         fontData: [],
         fontStyles: [],
+        name: "",
+        particleData: [],
+        particleNames: [],
         texts: [],
         textFieldStyles: [],
         textures: [],
         textureParts: [],
-        ui: [],
         skeletons: [],
         skeletonNames: [],
-        bundleType: 1, //Asset bundle,
-        name: ""
+        ui: [],
     }
 }
 
