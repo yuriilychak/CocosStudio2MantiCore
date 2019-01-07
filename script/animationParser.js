@@ -56,6 +56,10 @@ module.exports = function (bundleData, bundle) {
 
         actionType = frameNames.indexOf(type);
 
+        if (actionType === -1) {
+            continue;
+        }
+
         frames = timeLine["Frames"];
         parsedFrames = frames.map(frame => {
 

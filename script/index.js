@@ -95,8 +95,6 @@ async function generateAssetBundle(dirName) {
         return;
     }
 
-
-
     const sourceDirPath = path.join(rootDirPath, sourceDir);
     const fontBundle = addFontToBundle(dirName, sourceDirPath);
 
