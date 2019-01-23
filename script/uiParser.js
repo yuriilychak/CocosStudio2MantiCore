@@ -447,6 +447,7 @@ module.exports = function (bundle, bundleData) {
                 data.fileData = deselected.fileData.concat(selected.fileData);
                 data.content = selected.content;
                 data.slice9 = selected.slice9;
+                data.children = selected.children;
                 break;
             }
             case "PROGRESS_BAR": {
