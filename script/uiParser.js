@@ -439,7 +439,7 @@ module.exports = function (bundle, bundleData) {
     
         switch (userData["NAME"]) {
             case "TOGGLE_BUTTON": {
-                data.type = "ToggleButton"; 
+                data.type = "ToggleButton";
     
                 let selected = extractChild(data, "btnSelected");
                 let deselected = extractChild(data, "btnDeselected");
