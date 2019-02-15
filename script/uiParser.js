@@ -130,11 +130,6 @@ module.exports = function (bundle, bundleData) {
         if (element.scale[0] === CONSTANT.MAX_PERCENT && element.scale[1] === CONSTANT.MAX_PERCENT) {
             element.scale = null;
         }
-        else {
-            let temp = element.scale[0];
-            element.scale[0] = element.scale[1];
-            element.scale[1] = temp;
-        }
     
         const swapIn = ["Name", "TouchEnable", "FontSize", "ctype", "Children", "ClipAble", "ComboBoxIndex", "VisibleForFrame"];
         const swapOut = ["name", "interactive", "fontSize", "type", "children", "clipped", "colliderVisible", "visible"];
