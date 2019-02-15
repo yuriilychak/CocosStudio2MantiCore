@@ -152,6 +152,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
 
         command[1] = tmpPath;
         command[5] = path.join(exportPath, atlasName + "_{n}_{v}"+ suffix);
+        command[11] = atlasName === "main" ? " --disable-rotation" : " --enable-rotation";
 
         execSync(command.join(" "));
         fileUtil.deleteDirRecursive(tmpPath);
