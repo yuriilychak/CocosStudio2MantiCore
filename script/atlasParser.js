@@ -134,8 +134,26 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
                                 if (char.dimensions[2] === 0 || char.dimensions[3] === 0) {
                                     return;
                                 }
-                                imgChar = new pngjs.PNG({width: char.dimensions[2], height: char.dimensions[3]});
-                                this.bitblt(imgChar, char.dimensions[0], char.dimensions[1], char.dimensions[2], char.dimensions[3]);
+                                const padding = 2;
+                                const alpha = 0x11;
+                                const fullColor = 0xff;
+                                const charHeight = char.dimensions[3] + padding * 2;
+                                const charWidth = char.dimensions[2] + padding * 2;
+
+                                imgChar = new pngjs.PNG({width: charWidth, height: charHeight});
+                                let x, y, idx;
+
+                                for (y = 0; y < charHeight; ++y) {
+                                  for (x = 0; x < charWidth; ++x) {
+                                    idx = (imgChar.width * y + x) << 2;
+                                    imgChar.data[idx] = fullColor;
+                                    imgChar.data[idx + 1] = fullColor;
+                                    imgChar.data[idx + 2] = fullColor;
+                                    imgChar.data[idx + 3] = alpha;
+                                  }
+                                }
+
+                                this.bitblt(imgChar, char.dimensions[0], char.dimensions[1], char.dimensions[2], char.dimensions[3], padding, padding);
                                 buffer = pngjs.PNG.sync.write(imgChar, {});
                                 fs.writeFileSync(path.join(fontExportPath, char.id + ".png"), buffer);
                             });
@@ -236,6 +254,7 @@ function updateFontDimensions(atlasFrames, fontName, fontData, resolutionBundle)
     const resultData = JSON.parse(JSON.stringify(fontData));
     const chars = resultData.chars;
     const charCount = chars.length;
+    const padding = 2;
     let i, charData, charFrame, frame;
 
     for (i = 0; i < charCount; ++i) {
@@ -246,6 +265,8 @@ function updateFontDimensions(atlasFrames, fontName, fontData, resolutionBundle)
         }
         frame = atlasFrames[charFrame];
         charData.dimensions = convertFrameToDimension(frame.frame);
+        charData.offset[0] -=padding;
+        charData.offset[1] -=padding;
         delete atlasFrames[charFrame];
     }
     resolutionBundle.push(resultData);
