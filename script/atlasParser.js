@@ -17,6 +17,10 @@ const actionTemplates = [
     "Optimize PNG's: {0}"
 ];
 
+const WEB_P_QUALITY = 85;
+const PNG_MIN_QUALITY = 75;
+const PNG_MAX_QUALITY = 95;
+
 let bundle = null;
 
 /**
@@ -166,6 +170,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
 
         command[1] = tmpPath;
         command[5] = path.join(exportPath, atlasName + "_{n}_{v}"+ suffix);
+        command[11] = atlasName === "main" ? " --disable-rotation" : " --enable-rotation";
 
         execSync(command.join(" "));
         fileUtil.deleteDirRecursive(tmpPath);
@@ -186,6 +191,9 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
                 }
 
                 await pngToWebP(path.join(exportPath, fileName + ".png"));
+                if (fileName.indexOf("main_") === -1) {
+                    await compressPNG(exportPath, fileName);
+                }
 
                 atlasJsonString = fs.readFileSync(atlasPath, "utf8");
                 atlasJson = JSON.parse(atlasJsonString);
@@ -242,7 +250,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
 
     }
     logger.logMessage(actionTemplates[5], "Start");
-    //await compressPNG(exportPath);
+
     logger.logMessage(actionTemplates[5], "Finish");
 
     logger.logMessage(actionTemplates[0], "Finish");
@@ -323,17 +331,17 @@ function decomposeTexturePath(name) {
 
 async function pngToWebP(path) {
     return new Promise((resolve, reject) => {
-        webp.cwebp(path, path.replace(".png", ".webp"), "-q 85", (status) => {
+        webp.cwebp(path, path.replace(".png", ".webp"), "-q " + WEB_P_QUALITY, (status) => {
             console.log("WebP for " + path  + "created successfully");
             resolve();
         });
     });
 }
 
-async function compressPNG(path) {
-    await imagemin([path + "/*.png"], path, {
+async function compressPNG(path, fileName) {
+    await imagemin([path + "/" + fileName + ".png"], path, {
         plugins: [
-            imageminPngquant({quality: '85-95'})
+            imageminPngquant({quality: PNG_MIN_QUALITY + '-' + PNG_MAX_QUALITY})
         ]
     });
 }

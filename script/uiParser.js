@@ -130,11 +130,6 @@ module.exports = function (bundle, bundleData) {
         if (element.scale[0] === CONSTANT.MAX_PERCENT && element.scale[1] === CONSTANT.MAX_PERCENT) {
             element.scale = null;
         }
-        else {
-            let temp = element.scale[0];
-            element.scale[0] = element.scale[1];
-            element.scale[1] = temp;
-        }
     
         const swapIn = ["Name", "TouchEnable", "FontSize", "ctype", "Children", "ClipAble", "ComboBoxIndex", "VisibleForFrame"];
         const swapOut = ["name", "interactive", "fontSize", "type", "children", "clipped", "colliderVisible", "visible"];
@@ -439,7 +434,7 @@ module.exports = function (bundle, bundleData) {
     
         switch (userData["NAME"]) {
             case "TOGGLE_BUTTON": {
-                data.type = "ToggleButton"; 
+                data.type = "ToggleButton";
     
                 let selected = extractChild(data, "btnSelected");
                 let deselected = extractChild(data, "btnDeselected");
@@ -447,6 +442,7 @@ module.exports = function (bundle, bundleData) {
                 data.fileData = deselected.fileData.concat(selected.fileData);
                 data.content = selected.content;
                 data.slice9 = selected.slice9;
+                data.children = selected.children;
                 break;
             }
             case "PROGRESS_BAR": {
