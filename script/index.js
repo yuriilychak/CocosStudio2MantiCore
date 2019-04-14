@@ -244,6 +244,7 @@ function createEmptyAssetBundle() {
         fonts: [],
         fontData: [],
         fontStyles: [],
+        locales: [],
         name: "",
         particleData: [],
         particleNames: [],
@@ -253,6 +254,7 @@ function createEmptyAssetBundle() {
         textureParts: [],
         skeletons: [],
         skeletonNames: [],
+        userData: [],
         ui: [],
     }
 }
