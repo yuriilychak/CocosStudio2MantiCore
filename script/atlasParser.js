@@ -139,7 +139,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
                                     return;
                                 }
                                 const padding = 2;
-                                const alpha = 0x11;
+                                const alpha = 0x05;
                                 const fullColor = 0xff;
                                 const charHeight = char.dimensions[3] + padding * 2;
                                 const charWidth = char.dimensions[2] + padding * 2;

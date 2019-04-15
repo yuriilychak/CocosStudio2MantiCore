@@ -619,8 +619,8 @@ module.exports = function (bundle, bundleData) {
                     getFontStyleIndex(fontStyle),
                     getTextIndex(data["LabelText"]),
                     data.autoSize || 0,
-                    data.letterSpacing || 0
-                    data
+                    data.letterSpacing || 0,
+                    getLocaleIndex(data.locale || "")
                 ];
 
                 delete data["tint"];
