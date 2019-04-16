@@ -429,7 +429,7 @@ module.exports = function (bundle, bundleData) {
 
         for (i = 0; i < splitCount; ++i) {
             splitData = userDataSplitted[i].split(":");
-            userData[userDataSplitted.shift()] = userDataSplitted.join(":");
+            userData[splitData.shift()] = splitData.join(":");
         }
 
         if (userData["DATA"]) {
