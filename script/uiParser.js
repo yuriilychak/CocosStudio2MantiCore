@@ -36,7 +36,10 @@ module.exports = function (bundle, bundleData) {
         ATLAS_LABEL: 13,
         TEXT_FIELD: 14,
         SCROLL_VIEW: 15,
-        LIST_VIEW: 16
+        LIST_VIEW: 16,
+        PAGE_VIEW: 17,
+        SPINE: 18,
+        PARTICLE: 19
     };
 
     const HORIZONTAL_ALIGN = {
@@ -477,6 +480,23 @@ module.exports = function (bundle, bundleData) {
                 data.autoSize = parseInt(userData["AUTO_SIZE"] || 0, 10);
                 data.letterSpacing = parseInt(userData["LETTER_SPACING"] || 0, 10);
                 data.locale = userData["LOCALE"] || "";
+                break;
+            }
+            case "SPINE": {
+                const skeletonName = userData["SKELETON_NAME"];
+                if (skeletonName) {
+                    data.type = "Spine";
+                    data.skeletonName = skeletonName;
+                }
+                break;
+            }
+            case "PARTICLE": {
+                const particleName = userData["PARTICLE_NAME"];
+                if (particleName) {
+                    data.type = "Particle";
+                    data.particleName = particleName;
+                    data.nodeType = parseInt(userData["NODE_TYPE"] || 0, 10);
+                }
                 break;
             }
         }
@@ -948,6 +968,18 @@ module.exports = function (bundle, bundleData) {
                 data.type = UI_ELEMENT.ATLAS_LABEL;
                 break;
             }
+            case "Spine": {
+                data["type"] = UI_ELEMENT.SPINE;
+                data.fileData = [getSkeletonNameIndex(data.skeletonName)];
+                data.name = "skl" + data.name;
+                break;
+            }
+            case "Particle": {
+                data["type"] = UI_ELEMENT.PARTICLE;
+                data.fileData = [getSkeletonNameIndex(data.particleName), data.nodeType];
+                data.name = "prt" + data.name;
+                break;
+            }
             default: {
                 console.log(data["type"]);
                 break;
@@ -1276,6 +1308,38 @@ module.exports = function (bundle, bundleData) {
         if (index === -1) {
             index = bundle.userData.length;
             bundle.userData.push(userData);
+        }
+        return index;
+    }
+
+    /**
+     * @desc Returns index of user data.
+     * @function
+     * @param {string} skeletonName
+     * @returns {int}
+     */
+
+    function getSkeletonNameIndex(skeletonName) {
+        let index = bundle.skeletonNames.indexOf(skeletonName);
+        if (index === -1) {
+            index = bundle.skeletonNames.length;
+            bundle.skeletonNames.push(skeletonName);
+        }
+        return index;
+    }
+
+    /**
+     * @desc Returns index of user data.
+     * @function
+     * @param {string} userData
+     * @returns {int}
+     */
+
+    function getParticleNameIndex(particleName) {
+        let index = bundle.particleNames.indexOf(particleName);
+        if (index === -1) {
+            index = bundle.particleNames.length;
+            bundle.particleNames.push(particleName);
         }
         return index;
     }
