@@ -65,7 +65,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
     const suffix = ".json";
     const resolutions = ["ud", "hd", "sd"];
     const resolutionCount = resolutions.length;
-    let i, j, k, atlasFileName, atlasName, atlasXmlString, atlasJsonString, atlasJson, meta, frameMap, atlasIndex, atlasPath,
+    let i, j, k, atlasFileName, atlasName, atlasXmlString, atlasJsonString, atlasJson, meta, frameMap, atlasIndex, atlasPath, allowRotation,
         frameArray, key, frame, images,tmpPath, fontFiles, fontName, fontPath, fontChars, fontExportPath, imgChar, buffer, fileName;
 
     const command = [
@@ -107,11 +107,14 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
 
         tmpPath = fileUtil.createDir("tmp", rootPath);
         atlasXmlString = fs.readFileSync(path.join(atlasDirPath, atlasFileName), "utf8");
+
         images = atlasXmlString.split("\n")
             .filter(str => str.indexOf("<FilePathData Path=") !== -1)
             .map(str => str.replace('      <FilePathData Path="', "").replace('" />\r', "").replace('" />', ""));
 
         images.forEach(image => fileUtil.copyFile(sourcePath, tmpPath, image));
+
+        allowRotation = atlasXmlString.indexOf("AllowRotation=\"True\"") !== -1;
 
         if (atlasName === "main" && fontCount !== 0) {
             fontFiles = fs.readdirSync(fontDirPath);
@@ -170,7 +173,7 @@ module.exports = async function(fontBundle, bundleName, sourcePath, rootPath, ex
 
         command[1] = tmpPath;
         command[5] = path.join(exportPath, atlasName + "_{n}_{v}"+ suffix);
-        command[11] = atlasName === "main" ? " --disable-rotation" : " --enable-rotation";
+        command[11] = atlasName === "main" || !allowRotation ? " --disable-rotation" : " --enable-rotation";
 
         execSync(command.join(" "));
         fileUtil.deleteDirRecursive(tmpPath);
